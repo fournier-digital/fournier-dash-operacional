@@ -1,0 +1,10 @@
+# NUNCA subir ao Vercel:
+proxy.local.json          # SEGREDO — token do ClickUp (config fica no navegador)
+server.py                 # proxy local (no Vercel quem faz isso é api/index.py)
+proxy.local.json.example
+
+# lixo
+__pycache__/
+*.pyc
+.DS_Store
+.git

@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fournier · Dash Operacional</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ctext x='16' y='23' font-family='Arial,Helvetica,sans-serif' font-size='21' font-weight='800' fill='white' text-anchor='middle'%3EF%3C/text%3E%3C/svg%3E" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ctext x='16' y='23' font-family='Arial,Helvetica,sans-serif' font-size='21' font-weight='800' fill='white' text-anchor='middle'%3EF%3C/text%3E%3C/svg%3E" />
+    <meta name="theme-color" content="#2563eb" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', "system-ui", "-apple-system", "Segoe UI", "sans-serif"] } } } };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      html, body { min-height: 100%; }
+      body {
+        background: #0a1228;
+        color: #e2e8f0;
+        font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        letter-spacing: -0.01em;
+      }
+      /* glow fixo via pseudo-elemento — evita o bug do background-attachment:fixed no iOS Safari */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background:
+          radial-gradient(880px 420px at 80% -8%, #18306a 0%, rgba(10,18,40,0) 55%),
+          radial-gradient(680px 360px at 8% -4%, #0e2c4f 0%, rgba(10,18,40,0) 52%),
+          radial-gradient(760px 480px at 50% 112%, var(--fd-glow2, rgba(10,18,40,0)) 0%, rgba(10,18,40,0) 58%);
+      }
+      /* neon: brilho curto/nítido da própria cor (menos esfumaçado) */
+      .fd-neon { text-shadow: 0 0 6px currentColor; }
+      .fd-glow-on { box-shadow: 0 0 8px -3px rgba(59,130,246,.65); }
+      ::-webkit-scrollbar { width: 9px; height: 9px; }
+      ::-webkit-scrollbar-thumb { background: #2a3a5c; border-radius: 5px; }
+      ::-webkit-scrollbar-thumb:hover { background: #384b73; }
+      ::selection { background: #2563eb55; }
+      button:focus-visible, a:focus-visible, select:focus-visible, [role="button"]:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; border-radius: 10px; }
+
+      /* animações sutis — tokens de movimento */
+      :root { --fd-fast:140ms; --fd-mid:240ms; --fd-enter:220ms; --fd-fill:650ms; --fd-ease:cubic-bezier(.2,.7,.3,1); --fd-ease-pop:cubic-bezier(.2,.8,.3,1.4); }
+      @keyframes fdFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      .fd-fade { animation: fdFade var(--fd-enter) var(--fd-ease) both; }
+      /* glow vermelho: opacity num pseudo-elemento estático (composição pura, sem repaint por frame) */
+      @keyframes fdGlow { 0%,100% { opacity: 0; } 50% { opacity: 1; } }
+      .fd-glow { position: relative; }
+      .fd-glow::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: 0 0 16px -4px rgba(239,68,68,.42); animation: fdGlow 2.4s ease-in-out infinite; }
+      @keyframes fdDot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: .55; } }
+      .fd-dot { animation: fdDot 1.6s ease-in-out infinite; }
+      @keyframes fdSweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(220%); } }
+      .fd-sweep { position: relative; overflow: hidden; }
+      .fd-sweep::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.07) 50%, transparent 60%); animation: fdSweep 5.5s ease-in-out infinite; }
+      @keyframes fdSpin { to { transform: rotate(360deg); } }
+      .fd-spin { animation: fdSpin .7s linear infinite; }
+      .fd-skel { position: relative; overflow: hidden; background: rgba(30,41,59,.6); }
+      .fd-skel::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(148,163,184,.13) 50%, transparent 65%); animation: fdSweep 1.6s ease-in-out infinite; }
+      /* stagger de entrada das linhas (cap em 8) — curto p/ não passar sensação de lentidão */
+      @keyframes fdRowIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+      .fd-stagger > * { animation: fdRowIn 220ms var(--fd-ease) both; }
+      .fd-stagger > *:nth-child(1){animation-delay:0ms} .fd-stagger > *:nth-child(2){animation-delay:20ms} .fd-stagger > *:nth-child(3){animation-delay:40ms} .fd-stagger > *:nth-child(4){animation-delay:60ms} .fd-stagger > *:nth-child(5){animation-delay:80ms} .fd-stagger > *:nth-child(6){animation-delay:100ms} .fd-stagger > *:nth-child(7){animation-delay:120ms} .fd-stagger > *:nth-child(8){animation-delay:140ms} .fd-stagger > *:nth-child(n+9){animation-delay:150ms}
+      /* barras de progresso: crescem da esquerda no mount (transition de width não dispara na 1ª pintura) */
+      .fd-grow { transform-origin:left; animation: fdAccentIn var(--fd-fill) var(--fd-ease) both; }
+      /* transição direcional (drill in/out) */
+      @keyframes fdPushIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:none; } }
+      @keyframes fdPushOut { from { opacity:0; transform:translateX(-16px); } to { opacity:1; transform:none; } }
+      .fd-push-in { animation: fdPushIn var(--fd-enter) var(--fd-ease) both; }
+      .fd-push-out { animation: fdPushOut var(--fd-enter) var(--fd-ease) both; }
+      /* pop de menu / confirmação / logo */
+      @keyframes fdPop { from { opacity:0; transform:scale(.96) translateY(-4px); } to { opacity:1; transform:none; } }
+      .fd-pop { animation: fdPop var(--fd-fast) var(--fd-ease) both; transform-origin: top right; }
+      @keyframes fdPopOk { 0%{opacity:0;transform:scale(.8) translateY(2px)} 60%{transform:scale(1.06)} 100%{opacity:1;transform:none} }
+      .fd-pop-ok { animation: fdPopOk 320ms var(--fd-ease-pop) both; }
+      @keyframes fdLogoIn { 0%{transform:scale(.6);opacity:0} 60%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+      .fd-logo { animation: fdLogoIn 550ms var(--fd-ease-pop) both; }
+      /* sparkline desenhando + ponto final */
+      @keyframes fdDraw { from { stroke-dashoffset:1; } to { stroke-dashoffset:0; } }
+      .fd-spark { stroke-dasharray:1; stroke-dashoffset:1; animation: fdDraw var(--fd-fill) ease-out forwards; }
+      @keyframes fdDotIn { from { opacity:0; } to { opacity:1; } }
+      .fd-spark-dot { animation: fdDotIn 250ms ease-out var(--fd-fill) both; }
+      /* barra de acento do squad */
+      @keyframes fdAccentIn { from { transform:scaleX(0); opacity:.4; } to { transform:scaleX(1); opacity:1; } }
+      .fd-accent { transform-origin:left; animation: fdAccentIn var(--fd-enter) var(--fd-ease); }
+      /* dot "ao vivo" (verde) */
+      @keyframes fdLive { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.5)} 50%{opacity:.6;box-shadow:0 0 0 4px rgba(16,185,129,0)} }
+      .fd-live { animation: fdLive 2.2s ease-in-out infinite; }
+      /* reduced-motion: reset GLOBAL (cobre animação + transição + scroll) */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
+        .fd-fade, .fd-push-in, .fd-push-out { opacity:1 !important; transform:none !important; }
+        .fd-spark { stroke-dashoffset:0 !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script>
+      function fdErro(msg) {
+        var r = document.getElementById("root");
+        if (!r || r.children.length) return;
+        r.innerHTML = '<div style="max-width:640px;margin:40px auto;padding:20px;background:#0f172a;border:1px solid #7f1d1d;border-radius:12px;font-family:sans-serif;color:#e2e8f0"><h2 style="color:#f87171;margin:0 0 8px">Falha ao carregar o dashboard</h2><pre style="white-space:pre-wrap;color:#cbd5e1;font-size:13px">' + msg + "</pre><p style=\"color:#94a3b8;font-size:13px\">Abra pelo servidor (http://localhost:3000) e recarregue com Cmd+Shift+R.</p></div>";
+      }
+      window.addEventListener("error", function (e) { fdErro((e.message || "Erro") + (e.filename ? "\n" + e.filename + ":" + e.lineno : "")); });
+      window.__fdTimer = setTimeout(function () { fdErro("Tempo esgotado: o app não renderizou. Veja o console (F12)."); }, 12000);
+    </script>
+
+    <script src="src/lib/format.js?v=59"></script>
+    <script src="src/lib/clientes.js?v=59"></script>
+    <script src="src/lib/configStore.js?v=59"></script>
+    <script src="src/lib/auth.js?v=59"></script>
+    <script src="src/lib/clienteStore.js?v=59"></script>
+    <script src="src/mocks/data.js?v=59"></script>
+    <script src="src/engine/criticidade.js?v=59"></script>
+    <script src="src/integrations/clickup.js?v=59"></script>
+    <script src="src/integrations/googleCalendar.js?v=59"></script>
+    <script src="src/integrations/nps.js?v=59"></script>
+    <script src="src/integrations/controle.js?v=59"></script>
+    <script src="src/integrations/ltv.js?v=59"></script>
+    <script src="src/integrations/registry.js?v=59"></script>
+
+    <script type="text/app-jsx" id="app-src">
+      const { useState, useEffect, useMemo } = React;
+      const FD = window.FD;
+      const { dataCurta, relativo, diasAte, diasDesde, SQUADS } = FD.lib;
+      const norm = FD.lib.norm;
+
+      // Representantes por squad — com o ID FIXO do ClickUp (designação precisa).
+      const REPRESENTANTES = {
+        laranja: [
+          { nome: "Caio Siqueira", id: 94202358 },
+          { nome: "João Gabriel", id: 88380770 },
+          { nome: "Jon", id: 210282722 },
+        ],
+        azul: [
+          { nome: "Caio Siqueira", id: 94202358 },
+          { nome: "Cauã Dantas", id: 236485671 },
+          { nome: "Bruno Lopes", id: 88380772 },
+        ],
+      };
+      const REP_ID = {};
+      Object.keys(REPRESENTANTES).forEach((sq) => REPRESENTANTES[sq].forEach((r) => { REP_ID[r.nome] = r.id; }));
+      // Todos os nomes de representantes (união dos squads) e a quais squads cada um pertence.
+      const TODOS_REPS = Object.keys(REPRESENTANTES).reduce((acc, sq) => { REPRESENTANTES[sq].forEach((r) => { if (acc.indexOf(r.nome) < 0) acc.push(r.nome); }); return acc; }, []);
+      const squadsDoResp = (nome) => Object.keys(REPRESENTANTES).filter((sq) => REPRESENTANTES[sq].some((r) => r.nome === nome));
+
+      // Casa a demanda com o representante: primeiro pelo ID do ClickUp (preciso);
+      // se não houver IDs (ex.: mock), cai no match por nome tolerante.
+      function matchResp(demanda, repNome) {
+        const id = REP_ID[repNome];
+        if (id != null && demanda.responsaveisIds && demanda.responsaveisIds.length) {
+          return demanda.responsaveisIds.some((x) => Number(x) === Number(id));
+        }
+        const alvo = norm(repNome);
+        if (!alvo) return false;
+        const nomes = (demanda.responsaveis && demanda.responsaveis.length)
+          ? demanda.responsaveis : [demanda.responsavel];
+        const bt = alvo.split(" ").filter(Boolean);
+        return nomes.some((n) => {
+          const a = norm(n);
+          if (!a) return false;
+          if (a === alvo) return true;
+          const at = a.split(" ").filter(Boolean);
+          const aset = new Set(at), bset = new Set(bt);
+          return bt.every((t) => aset.has(t)) || at.every((t) => bset.has(t));
+        });
+      }
+
+      // Seletor de responsável (pop-up no topo).
+      function RepSelector({ reps, resp, setResp }) {
+        const [open, setOpen] = useState(false);
+        const ref = React.useRef(null);
+        // fecha ao clicar fora ou apertar Esc (só enquanto aberto)
+        useEffect(() => {
+          if (!open) return;
+          const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+          const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+          document.addEventListener("mousedown", onDoc);
+          document.addEventListener("keydown", onKey);
+          return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
+        }, [open]);
+        if (!reps || !reps.length) return null;
+        return (
+          <div className="relative" ref={ref}>
+            <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className={`text-[12px] font-semibold rounded-xl px-2.5 min-h-[40px] inline-flex items-center gap-1 ${resp ? "bg-blue-600 text-white" : "bg-slate-800/80 text-slate-300 hover:text-slate-100"}`}>
+              <span aria-hidden="true">👤</span><span className="max-w-[110px] truncate">{resp || "Responsável"}</span><span className="text-[10px]" aria-hidden="true">▾</span>
+            </button>
+            {open && (
+              <div role="menu" className="fd-pop absolute right-0 mt-1 z-30 w-52 rounded-xl border border-slate-700 bg-slate-900 shadow-xl p-1">
+                <button onClick={() => { setResp(null); setOpen(false); }} className={`w-full text-left text-[13px] rounded-lg px-2.5 py-1.5 ${!resp ? "bg-slate-700 text-white" : "text-slate-300 hover:bg-slate-800"}`}>Todos os responsáveis</button>
+                {reps.map((r) => <button key={r} onClick={() => { setResp(r); setOpen(false); }} className={`w-full text-left text-[13px] rounded-lg px-2.5 py-1.5 ${resp === r ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}>{r}</button>)}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      const SQ_TXT = { azul: "#93c5fd", laranja: "#fdba74" };
+      const NIVEL = {
+        vermelho: { dot: "#ff3b5c", chip: "bg-rose-500/20 text-rose-300", label: "Muito crítico" },
+        laranja: { dot: "#ff7a1a", chip: "bg-orange-500/20 text-orange-300", label: "Crítico" },
+        amarelo: { dot: "#ffc73a", chip: "bg-amber-400/20 text-amber-200", label: "Atenção" },
+        verde: { dot: "#19e57f", chip: "bg-emerald-500/20 text-emerald-300", label: "Saudável" },
+      };
+      const CARD = "bg-slate-900/70 border border-slate-800 rounded-2xl";
+      const ROW_HOVER = "transition-colors duration-150 hover:bg-slate-800/60 active:bg-slate-700/60";
+      const H = "font-bold text-slate-100 tracking-tight";
+      const renovTxt = (d) => (d == null ? "—" : d < 0 ? `vencida ${-d}d` : d === 0 ? "vence hoje" : `em ${d}d`);
+      const mesesAtivo = (e) => Math.max(1, Math.round(diasDesde(e.inicioContrato) / 30));
+      const mesesAtivoTxt = (e) => { const m = mesesAtivo(e); return `${m} ${m === 1 ? "mês" : "meses"}`; };
+      // Exceções "fora do padrão" (onboarding/entregáveis com observação, ex.: Onis "Não fazemos os criativos")
+      const excecoesDe = (e) => [].concat(e.onboarding || [], e.entregaveis || []).filter((i) => i.excecao && i.status);
+      const temExcecao = (e) => excecoesDe(e).length > 0;
+      // Cor por NPS (nota 0–10): promotor 7+ · neutro 6 · insatisfeito 5 · crítico <5
+      const corNps = (v) => (v == null ? "slate" : v >= 7 ? "green" : v >= 6 ? "amber" : v >= 5 ? "orange" : "red");
+      const npsDisp = (v) => (v == null ? null : Math.round((Number(v) / 2) * 10) / 10); // 0–10 interno -> EXIBIÇÃO 1–5
+      // Cor do status de entregável/demanda: Marcado (âmbar) -> Enviado (azul) -> Feito (verde) -> vazio (cinza).
+      const corDem = (it) => {
+        const v = norm((it && it.status) || "");
+        if (/feito|conclu|aprovad|complet|ativ/.test(v)) return { cls: "bg-emerald-500/15 text-emerald-300", ic: "✓" };
+        if (/enviad/.test(v)) return { cls: "bg-blue-500/15 text-blue-300", ic: "↑" };
+        if (/marcad|agendad/.test(v)) return { cls: "bg-amber-500/15 text-amber-300", ic: "•" };
+        if (v) return { cls: "bg-slate-700/50 text-slate-300", ic: "•" };          // outro status com texto
+        return (it && it.feito) ? { cls: "bg-emerald-500/15 text-emerald-300", ic: "✓" } : { cls: "bg-slate-800 text-slate-500", ic: "·" };
+      };
+      const NPS_TXT = { green: "text-emerald-300", amber: "text-amber-300", orange: "text-orange-300", red: "text-rose-300", slate: "text-slate-400" };
+      const NPS_DOT = { green: "bg-emerald-500", amber: "bg-amber-400", orange: "bg-orange-500", red: "bg-rose-500", slate: "bg-slate-600" };
+      const NPS_LABEL = { green: "promotor", amber: "neutro", orange: "insatisfeito", red: "crítico", slate: "—" };
+
+      function Semaforo({ nivel, size = 10 }) {
+        return <span className="inline-block rounded-full shrink-0 transition-transform duration-150 group-hover:scale-125" style={{ width: size, height: size, backgroundColor: NIVEL[nivel].dot, boxShadow: `0 0 4px ${NIVEL[nivel].dot}cc, 0 0 0 1.5px ${NIVEL[nivel].dot}55` }} title={NIVEL[nivel].label} />;
+      }
+      // Legenda de cores que também FILTRA: clica numa cor -> mostra só aquela; clica de novo -> todos.
+      function FiltroCores({ itens, ativo, onToggle }) {
+        return (
+          <div className="px-4 py-2 border-b border-slate-800/60 flex flex-wrap items-center gap-1.5 text-[10px]">
+            {itens.map((it) => {
+              const on = ativo === it.cor;
+              const vazio = it.n === 0; // cor sem clientes: vira só legenda (não filtra)
+              return (
+                <button key={it.cor} disabled={vazio} onClick={() => onToggle(it.cor)} title={vazio ? "Sem clientes nesta cor" : "Filtrar por esta cor"} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 border transition active:scale-95 ${vazio ? "border-transparent text-slate-600 cursor-default" : on ? "border-slate-400 bg-slate-700/70 text-slate-100" : "border-slate-700/40 text-slate-500 hover:text-slate-200 hover:border-slate-600"}`}>
+                  <span className={`w-2 h-2 rounded-full ${it.dot} ${vazio ? "opacity-40" : ""}`} />{it.label}{it.n != null ? ` · ${it.n}` : ""}
+                </button>
+              );
+            })}
+            {ativo && <button onClick={() => onToggle(ativo)} className="text-slate-500 hover:text-slate-200 ml-1 underline">limpar</button>}
+          </div>
+        );
+      }
+      function SquadBadge({ squad, small }) {
+        const s = SQUADS[squad];
+        return <span className={`inline-flex items-center gap-1.5 ${small ? "text-[11px] px-1.5 py-0.5" : "text-xs px-2 py-0.5"} rounded-md font-semibold`} style={{ backgroundColor: s.cor + "22", color: SQ_TXT[squad], border: `1px solid ${s.cor}44` }}><span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.cor }} />{s.nome.replace("Squad ", "")}</span>;
+      }
+      function NpsChip({ label, valor }) {
+        if (valor == null) return <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-slate-800 text-slate-500">{label} —</span>;
+        const ruim = valor < 7;
+        return <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold transition-colors duration-150 ${ruim ? "bg-red-500/15 text-red-300" : "bg-emerald-500/15 text-emerald-300"}`}>{label} {npsDisp(valor)}</span>;
+      }
+      function ChanceBar({ pct, nivel }) {
+        const cor = { verde: "bg-emerald-500", amarelo: "bg-amber-400", vermelho: "bg-red-500" }[nivel];
+        const txt = { verde: "text-emerald-300", amarelo: "text-amber-300", vermelho: "text-red-300" }[nivel];
+        return <div className="flex items-center gap-2 w-28 shrink-0"><div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden"><div className={`h-full ${cor} rounded-full fd-grow transition-[width] duration-700 ease-out`} style={{ width: pct + "%" }} /></div><span className={`text-[12px] font-bold ${txt} w-9 text-right`}>{pct}%</span></div>;
+      }
+      function Chevron() { return <span className="text-slate-500 group-hover:text-blue-300 group-hover:translate-x-0.5 motion-reduce:transform-none transition-[color,transform] duration-150 text-xl shrink-0 leading-none">›</span>; }
+      function Sparkline({ serie, color }) {
+        const n = serie.length;
+        const pts = serie.map((v, i) => (v == null ? null : `${(i / (n - 1)) * 100},${28 - (v / 10) * 24}`)).filter(Boolean);
+        if (pts.length < 2) {
+          const ultimo = serie.filter((v) => v != null).pop();
+          return ultimo == null
+            ? <div className="text-[11px] text-slate-400">sem dados</div>
+            : <div className="text-2xl font-extrabold py-1" style={{ color }}>{npsDisp(ultimo)}<span className="text-[11px] text-slate-500 font-normal"> · 1 mês</span></div>;
+        }
+        const lastIdx = serie.reduce((acc, v, i) => (v != null ? i : acc), -1);
+        const last = serie[lastIdx];
+        return (
+          <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="w-full h-9">
+            <polyline pathLength="1" points={pts.join(" ")} fill="none" stroke={color} strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" className="fd-spark" />
+            <circle className="fd-spark-dot" cx={(lastIdx / (n - 1)) * 100} cy={28 - (last / 10) * 24} r="2.6" fill={color} />
+          </svg>
+        );
+      }
+
+      // KPI clicável — leva à aba já priorizada
+      function KpiMini({ label, value, sub, tone = "slate", onClick }) {
+        const t = { red: "text-red-400", amber: "text-amber-400", orange: "text-orange-400", green: "text-emerald-400", blue: "text-blue-300", slate: "text-slate-100" }[tone] || "text-slate-100";
+        return (
+          <button onClick={onClick} className={`group ${CARD} px-2.5 sm:px-4 py-3 sm:py-3.5 text-left transition ${onClick ? "hover:border-slate-600 hover:bg-slate-800/40 active:scale-[.98]" : "cursor-default"}`}>
+            <div className="flex items-center justify-between gap-1"><div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold">{label}</div>{onClick && <span className="hidden sm:inline text-slate-500 group-hover:text-blue-300 transition">›</span>}</div>
+            <div className={`text-2xl sm:text-[28px] leading-none font-extrabold mt-1.5 fd-neon ${t}`}>{value}</div>
+            {sub && <div className="text-[11px] text-slate-400 mt-1.5">{sub}</div>}
+          </button>
+        );
+      }
+
+      /* ---------------- LOGIN ---------------- */
+      function Login({ onLogin }) {
+        const [perfil, setPerfil] = useState("diretoria");
+        const [senha, setSenha] = useState("");
+        const [erro, setErro] = useState("");
+        const entrar = () => { const r = FD.auth.login(perfil, senha); if (!r.ok) { setErro(r.erro); return; } onLogin(r.sessao); };
+        return (
+          <div className="min-h-screen grid place-items-center px-4">
+            <div className={`w-full max-w-sm ${CARD} p-7 shadow-2xl shadow-black/40`}>
+              <div className="flex items-center gap-2.5 mb-6"><div className="w-9 h-9 rounded-xl bg-blue-600 text-white grid place-items-center font-extrabold">F</div><div><div className={`${H} leading-tight`}>Fournier · Operação</div><div className="text-[12px] text-slate-400">Painel interno por squad</div></div></div>
+              <div className="text-[12px] font-semibold text-slate-400 mb-1.5">Perfil de acesso</div>
+              <div className="grid grid-cols-3 gap-1.5 mb-4">
+                {FD.auth.perfis.map((p) => { const active = perfil === p.id; const c = p.id === "azul" ? "border-blue-500 text-blue-300 bg-blue-500/10" : p.id === "laranja" ? "border-orange-500 text-orange-300 bg-orange-500/10" : "border-slate-400 text-slate-100 bg-slate-700/60"; return <button key={p.id} onClick={() => { setPerfil(p.id); setErro(""); }} className={`text-[12px] font-semibold rounded-xl border px-2 py-2.5 transition ${active ? c : "border-slate-700 text-slate-400 hover:border-slate-600"}`}>{p.label}</button>; })}
+              </div>
+              <label className="block"><span className="text-[12px] font-semibold text-slate-400">Senha</span><input type="password" value={senha} autoFocus onChange={(e) => { setSenha(e.target.value); setErro(""); }} onKeyDown={(e) => e.key === "Enter" && entrar()} placeholder="••••••••" className="mt-1.5 w-full text-sm bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500" /></label>
+              {erro && <div className="text-[12px] text-red-400 mt-2">{erro}</div>}
+              <button onClick={entrar} className="mt-5 w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl py-2.5 transition">Entrar</button>
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------------- HEADER ---------------- */
+      function Header({ sessao, squad, setSquad, view, setView, onLogout, busca, setBusca, resp, setResp, reps }) {
+        const diretoria = sessao.papel === "diretoria";
+        const tabs = [
+          { key: "resumo", label: "Resumo" }, { key: "renovacoes", label: "Renovações" }, { key: "reunioes", label: "Reuniões" },
+          { key: "nps", label: "NPS" }, { key: "demandas", label: "Demandas" }, { key: "clientes", label: "Clientes" },
+          { key: "out", label: "Clientes Out" },
+        ];
+        const squads = [{ key: "todos", label: "Todos" }, { key: "azul", label: "Azul" }, { key: "laranja", label: "Laranja" }];
+        const accent = diretoria ? "#2563eb" : SQUADS[sessao.squad].cor;
+        const barColor = diretoria ? (squad === "todos" ? "#2563eb" : SQUADS[squad].cor) : accent;
+        const [scrolled, setScrolled] = useState(false);
+        useEffect(() => {
+          let raf = 0;
+          const on = () => { if (raf) return; raf = requestAnimationFrame(() => { setScrolled(window.scrollY > 4); raf = 0; }); };
+          window.addEventListener("scroll", on, { passive: true });
+          return () => { window.removeEventListener("scroll", on); if (raf) cancelAnimationFrame(raf); };
+        }, []);
+        return (
+          <header className={`sticky top-0 z-20 bg-slate-950/70 backdrop-blur-md border-b border-slate-800 transition-shadow duration-300 ${scrolled ? "shadow-lg shadow-black/40" : ""}`}>
+            <div key={squad + barColor} className="h-0.5 w-full fd-accent" style={{ background: `linear-gradient(90deg, ${barColor}, transparent 70%)` }} />
+            <div className="max-w-6xl mx-auto px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <div className="flex items-center gap-2.5 min-w-0"><div className="w-8 h-8 rounded-xl text-white grid place-items-center font-extrabold text-sm shrink-0 fd-logo" style={{ background: accent, boxShadow: `0 0 9px -4px ${accent}` }}>F</div><div className="leading-tight min-w-0"><div className="font-bold text-slate-100 text-[15px] tracking-tight truncate">{sessao.nome}</div><div className="text-[11px] text-slate-500 flex items-center gap-1.5">{FD.NOW.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}{(() => { const av = (FD.integrations.squadsAoVivo && FD.integrations.squadsAoVivo()) || []; return av.length ? <span className="text-emerald-400/90 hidden sm:inline" title={"ClickUp ao vivo: " + av.join(", ")}>· <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 fd-live align-middle" /> ClickUp ao vivo ({av.join(", ")})</span> : <span className="text-amber-500/80 hidden sm:inline" title="Sincronização real entra na fase de integração">· dados de exemplo</span>; })()}</div></div></div>
+                <div className="flex items-center gap-2 ml-auto">
+                  {diretoria && <div className="flex bg-slate-800/80 rounded-xl p-0.5">{squads.map((s) => { const active = squad === s.key; const ac = s.key === "azul" ? "text-blue-300" : s.key === "laranja" ? "text-orange-300" : "text-slate-100"; return <button key={s.key} onClick={() => setSquad(s.key)} className={`px-2.5 min-h-[40px] inline-flex items-center text-[12px] font-semibold rounded-lg transition ${active ? `bg-slate-700 ${ac}` : "text-slate-400"}`}>{s.label}</button>; })}</div>}
+                  <div className="relative"><input value={busca || ""} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar cliente…" aria-label="Buscar cliente" className="text-[13px] bg-slate-800/80 border border-slate-700 rounded-xl pl-7 pr-6 min-h-[40px] w-32 sm:w-44 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40" /><span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[12px]" aria-hidden="true">🔍</span>{busca && <button onClick={() => setBusca("")} title="Limpar" className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs">✕</button>}</div>
+                  <RepSelector reps={reps} resp={resp} setResp={setResp} />
+                  <button onClick={() => setView("integracoes")} title="Integrações" aria-label="Integrações" className={`text-base px-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg transition ${view === "integracoes" ? "text-blue-300 bg-slate-800" : "text-slate-400 hover:text-slate-200"}`}><span aria-hidden="true">⚙</span></button>
+                  <button onClick={onLogout} className="text-[12px] font-medium text-slate-400 hover:text-red-400 px-2 min-h-[44px] inline-flex items-center">Sair</button>
+                </div>
+              </div>
+              <nav className="flex gap-1 mt-3 overflow-x-auto">{tabs.map((t) => { const active = view === t.key || (view === "detalhe" && t.key === "clientes"); return <button key={t.key} onClick={() => setView(t.key)} className={`px-3 min-h-[40px] inline-flex items-center text-[13px] font-semibold rounded-lg transition active:scale-95 whitespace-nowrap ${active ? "bg-blue-600 text-white fd-glow-on" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"}`}>{t.label}</button>; })}</nav>
+            </div>
+          </header>
+        );
+      }
+
+      /* ---------------- SAÚDE DA CARTEIRA ---------------- */
+      function SaudeCarteira({ escolas, label, setView }) {
+        const total = escolas.length || 1;
+        const cont = { verde: 0, amarelo: 0, laranja: 0, vermelho: 0 };
+        escolas.forEach((e) => cont[e.crit.nivel]++);
+        const emRisco = escolas.filter((e) => e.crit.riscoChurn).length;
+        const pct = (n) => (n / total) * 100;
+        const Legend = ({ color, n, t }) => <span className="flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${color}`} />{n} {t}</span>;
+        return (
+          <div className={`${CARD} p-5`}>
+            <div className="flex items-end justify-between flex-wrap gap-4">
+              <div><div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Saúde da carteira{label ? ` · ${label}` : ""}</div><div className="flex items-baseline gap-2 mt-1.5"><span className="text-4xl font-extrabold text-emerald-300 tracking-tight fd-neon">{Math.round(pct(cont.verde))}%</span><span className="text-sm text-slate-400">saudáveis · {escolas.length} clientes</span></div></div>
+              {emRisco > 0 && setView ? (
+                <button onClick={() => setView("clientes")} className="text-right group rounded-xl -m-1 p-1 transition hover:bg-slate-800/40" title="Ver clientes em risco (ordenados por prioridade)"><div className="text-3xl font-extrabold text-red-400">{emRisco}</div><div className="text-[11px] text-slate-400 group-hover:text-slate-300 flex items-center justify-end gap-1">em risco de churn <span className="text-slate-500 group-hover:text-blue-300 transition">›</span></div></button>
+              ) : (
+                <div className="text-right"><div className="text-3xl font-extrabold text-slate-100">{emRisco}</div><div className="text-[11px] text-slate-400">em risco de churn</div></div>
+              )}
+            </div>
+            <div className="mt-4 h-2.5 rounded-full overflow-hidden flex bg-slate-800"><div style={{ width: pct(cont.verde) + "%" }} className="bg-emerald-500 fd-grow transition-[width] duration-700 ease-out" /><div style={{ width: pct(cont.amarelo) + "%" }} className="bg-amber-400 fd-grow transition-[width] duration-700 ease-out" /><div style={{ width: pct(cont.laranja) + "%" }} className="bg-orange-500 fd-grow transition-[width] duration-700 ease-out" /><div style={{ width: pct(cont.vermelho) + "%" }} className="bg-red-500 fd-grow transition-[width] duration-700 ease-out" /></div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[12px] text-slate-400"><Legend color="bg-emerald-500" n={cont.verde} t="saudáveis" /><Legend color="bg-amber-400" n={cont.amarelo} t="atenção" /><Legend color="bg-orange-500" n={cont.laranja} t="críticos" /><Legend color="bg-red-500" n={cont.vermelho} t="muito críticos" /></div>
+          </div>
+        );
+      }
+
+      /* ---------------- AÇÕES ---------------- */
+      function AcaoRow({ a, showSquad, onClick, tone }) {
+        const chip = tone === "critica" ? "bg-red-500/15" : "bg-amber-500/15";
+        return <button onClick={onClick} className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl ${ROW_HOVER} text-left transition`}><span className={`grid place-items-center w-9 h-9 rounded-xl text-lg shrink-0 ${chip}`}>{a.icon}</span><div className="flex-1 min-w-0"><div className="text-sm font-semibold text-slate-100 truncate">{a.titulo}</div><div className="text-[12px] text-slate-400 truncate flex items-center gap-1.5">{showSquad && <SquadBadge squad={a.squad} small />}<span className="truncate">{a.motivo}</span></div></div><Chevron /></button>;
+      }
+      function PainelAcoes({ titulo, sub, acoes, vazio, dot, tone, showSquad, abrirCliente, verTudo, max = 7 }) {
+        const mostradas = acoes.slice(0, max);
+        const resto = acoes.length - mostradas.length;
+        return (
+          <div className={`${CARD} flex flex-col`}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800"><div className={`flex items-center gap-2 text-sm ${H}`}><span className={`w-2.5 h-2.5 rounded-full ${dot}`} />{titulo}<span className="text-slate-500 font-medium text-[12px]">{sub}</span></div><span className="text-xs font-bold text-slate-300 bg-slate-800 rounded-full px-2 py-0.5">{acoes.length}</span></div>
+            {acoes.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">{vazio}</div> : <div className="p-1.5">{mostradas.map((a) => <AcaoRow key={a.id} a={a} tone={tone} showSquad={showSquad} onClick={() => abrirCliente(a.escolaId)} />)}{resto > 0 && verTudo && <button onClick={verTudo} className="w-full text-left px-3 py-2 text-[12px] font-medium text-blue-400 hover:underline">+{resto} ações — ver todos os clientes</button>}</div>}
+          </div>
+        );
+      }
+
+      /* ---------------- RESUMO (HOME — só o essencial diário) ---------------- */
+      function PrioritarioRow({ e, showSquad, onClick }) {
+        const rec = FD.engine.recomendacoes(e)[0];
+        const vermelho = e.crit.nivel === "vermelho";
+        return (
+          <button onClick={onClick} className={`group w-full text-left px-4 py-3 ${ROW_HOVER} flex items-start gap-3 transition`}>
+            <span className={vermelho ? "fd-dot mt-1" : "mt-1"}><Semaforo nivel={e.crit.nivel} size={12} /></span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap"><span className="font-bold text-slate-100 text-sm truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}<span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${e.crit.chanceNivel === "vermelho" ? "bg-red-500/15 text-red-300" : e.crit.chanceNivel === "amarelo" ? "bg-amber-500/15 text-amber-300" : "bg-emerald-500/15 text-emerald-300"}`}>renovar {e.crit.chanceRenovar}%</span></div>
+              <div className="text-[12px] text-slate-400 truncate mt-0.5">{e.crit.motivos.slice(0, 3).join(" · ")}</div>
+              {rec && <div className="text-[12px] text-blue-200/90 mt-1 flex items-start gap-1.5"><span>{rec.icon}</span><span className="line-clamp-1">{rec.txt}</span></div>}
+            </div>
+            <Chevron />
+          </button>
+        );
+      }
+      function AgendaDoDia({ eventos }) {
+        const hoje0 = new Date(FD.NOW); hoje0.setHours(0, 0, 0, 0);
+        const diffDia = (k) => { const d = new Date(k + "T00:00:00"); d.setHours(0, 0, 0, 0); return Math.round((d - hoje0) / 86400000); };
+        const rotulo = (k) => { const n = diffDia(k); return n === 0 ? "Hoje" : n === 1 ? "Amanhã" : new Date(k + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "short" }); };
+        const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const grupos = {};
+        (eventos || []).forEach((ev) => { const k = (ev.inicio || "").slice(0, 10); if (!k) return; (grupos[k] = grupos[k] || []).push(ev); });
+        const dias = Object.keys(grupos).sort();
+        return (
+          <div className={`${CARD} overflow-hidden`}>
+            <div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between"><span className={H}>🗓️ Reuniões do dia</span><span className="text-slate-500 text-[12px]">hoje + próximos dias</span></div>
+            {dias.length === 0 ? <div className="px-4 py-8 text-center text-sm text-slate-500">Sem reuniões nos próximos dias.</div> : (
+              <div className="divide-y divide-slate-800 max-h-80 overflow-auto">
+                {dias.map((k) => (
+                  <div key={k} className="px-4 py-2.5">
+                    <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">{rotulo(k)} <span className="text-slate-600">· {grupos[k].length}</span></div>
+                    <div className="space-y-1">
+                      {grupos[k].map((ev) => (
+                        <div key={ev.id} className="flex items-center gap-3 py-1">
+                          <span className="text-[12px] font-bold text-blue-300 w-14 shrink-0">{ev.diaInteiro ? "dia" : hora(ev.inicio)}</span>
+                          <span className="text-[13px] text-slate-100 truncate flex-1">{ev.titulo}</span>
+                          {ev.link && <a href={ev.link} target="_blank" rel="noreferrer" className="text-[12px] text-blue-400 hover:underline shrink-0">abrir</a>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+      function ProximasDemandas({ escolas, showSquad, abrirCliente }) {
+        const hoje0 = new Date(FD.NOW); hoje0.setHours(0, 0, 0, 0);
+        const diff = (iso) => { const d = new Date(iso); d.setHours(0, 0, 0, 0); return Math.round((d - hoje0) / 86400000); };
+        const itens = [];
+        escolas.forEach((e) => (e.demandas || []).filter((d) => d.status !== "concluída" && d.prazo && diff(d.prazo) >= 0 && diff(d.prazo) <= 7).forEach((d) => itens.push({ ...d, escola: e, k: diff(d.prazo) })));
+        itens.sort((a, b) => a.k - b.k);
+        return (
+          <div className={`${CARD} overflow-hidden`}>
+            <div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between"><span className={H}>⏱️ Próximas demandas</span><span className="text-slate-500 text-[12px]">próximos 7 dias · {itens.length}</span></div>
+            {itens.length === 0 ? <div className="px-4 py-8 text-center text-sm text-slate-500">Nenhuma demanda com prazo nos próximos 7 dias.</div> : (
+              <div className="divide-y divide-slate-800 max-h-80 overflow-auto">{itens.slice(0, 10).map((d) => (
+                <button key={d.id} onClick={() => abrirCliente(d.escola.id)} className={`group w-full text-left px-4 py-2 ${ROW_HOVER} flex items-center gap-3`}>
+                  <span className={`text-[12px] font-bold w-12 shrink-0 ${d.k === 0 ? "text-amber-400" : "text-slate-400"}`}>{d.k === 0 ? "hoje" : `${d.k}d`}</span>
+                  <div className="flex-1 min-w-0"><div className="text-[13px] font-semibold text-slate-100 truncate">{d.titulo}</div><div className="text-[11px] text-slate-500 flex items-center gap-1.5">{showSquad && <SquadBadge squad={d.escola.squad} small />}<span className="truncate">{d.escola.nome}</span></div></div>
+                  <span className="hidden sm:inline text-[11px] text-slate-400 truncate w-24 text-right">{d.responsavel}</span>
+                </button>
+              ))}</div>
+            )}
+          </div>
+        );
+      }
+      function Resumo({ escolas, label, showSquad, abrirCliente, setView, agenda }) {
+        const semana = FD.engine.acoes(escolas).filter((a) => a.urgencia === "semana");
+        const nps = FD.engine.npsResumo(escolas);
+        const renov = FD.engine.renovacoes(escolas);
+        const renov60 = renov.filter((r) => r.dias != null && r.dias <= 60).length;
+        const reunPend = escolas.filter((e) => e.crit.semReuniao).length;
+        const prio = FD.engine.prioritarios(escolas).filter((e) => e.crit.nivel !== "verde").slice(0, 5);
+        const temVermelho = prio.length && prio[0].crit.nivel === "vermelho";
+        return (
+          <div className="space-y-5">
+            <SaudeCarteira escolas={escolas} label={label} setView={setView} />
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <KpiMini label="NPS escolas" value={nps.externo.media == null ? "—" : npsDisp(nps.externo.media)} sub="média /5 →" tone={corNps(nps.externo.media)} onClick={() => setView("nps")} />
+              <KpiMini label="Renov. ≤60d" value={renov60} sub={`${renov.filter((r) => r.dias != null && r.dias < 0).length} vencidas`} tone={renov60 ? "amber" : "green"} onClick={() => setView("renovacoes")} />
+              <KpiMini label="Reuniões" value={reunPend} sub="quinzenal →" tone={reunPend ? "amber" : "green"} onClick={() => setView("reunioes")} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-5">
+              <AgendaDoDia eventos={agenda} />
+              <ProximasDemandas escolas={escolas} showSquad={showSquad} abrirCliente={abrirCliente} />
+            </div>
+            <div className={`${CARD} ${temVermelho ? "fd-glow" : ""}`}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+                <div className={`flex items-center gap-2 text-sm ${H}`}><span>🚨</span>Clientes prioritários<span className="text-slate-500 font-medium text-[12px]">quem está mais negativo + o que fazer</span></div>
+                <button onClick={() => setView("clientes")} className="text-[12px] text-blue-400 hover:underline">ver todos</button>
+              </div>
+              {prio.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">Nenhum cliente em risco agora 🎉 carteira saudável.</div> : <div className="p-1.5">{prio.map((e) => <PrioritarioRow key={e.id} e={e} showSquad={showSquad} onClick={() => abrirCliente(e.id)} />)}</div>}
+            </div>
+            <PainelAcoes titulo="Esta semana" sub="80/20 · tarefas que evitam virar crítico" dot="bg-amber-400" tone="semana" acoes={semana} vazio="Sem pendências para a semana 👌" showSquad={showSquad} abrirCliente={abrirCliente} verTudo={() => setView("clientes")} max={6} />
+          </div>
+        );
+      }
+
+      /* ---------------- RENOVAÇÕES ---------------- */
+      function Renovacoes({ escolas, showSquad, abrirCliente }) {
+        const [ord, setOrd] = useState("proxima");
+        const base = FD.engine.renovacoes(escolas); // já vem por proximidade (null no fim)
+        const comData = base.filter((x) => x.dias != null);
+        const semData = base.length - comData.length;
+        const vencidas = comData.filter((x) => x.dias < 0).length;
+        const d30 = comData.filter((x) => x.dias >= 0 && x.dias <= 30).length;
+        const chanceMedia = escolas.length ? Math.round(escolas.reduce((s, e) => s + e.crit.chanceRenovar, 0) / escolas.length) : 0;
+        const emRisco = base.filter((x) => x.dias != null && x.dias <= 45 && x.escola.crit.chanceRenovar < 45).length; // renovação ≤45d + chance baixa (M3)
+        let lista;
+        if (ord === "distante") {
+          const sem = base.filter((x) => x.dias == null);
+          lista = comData.slice().sort((a, b) => b.dias - a.dias).concat(sem); // mais tempo no topo
+        } else if (ord === "critico") {
+          lista = base.slice().sort((a, b) => b.escola.crit.score - a.escola.crit.score); // mais crítico no topo
+        } else {
+          lista = base; // "proxima": vence antes (padrão)
+        }
+        // Cor por proximidade da renovação (verde -> amarelo -> laranja -> vermelho).
+        const corRenov = (d) => {
+          if (d == null) return "slate";
+          if (d < 15) return "red";              // <15 dias ou vencida
+          if (d < 30) return "orange";           // 15–29 dias
+          if (d < 45) return "amber";            // 30–44 dias
+          return "green";                        // 45 dias+
+        };
+        const BARRA = { green: "bg-emerald-500", amber: "bg-amber-400", orange: "bg-orange-500", red: "bg-red-500", slate: "bg-slate-700" };
+        const TXT = { green: "text-emerald-300", amber: "text-amber-300", orange: "text-orange-300", red: "text-red-300", slate: "text-slate-400" };
+        const [filtroCor, setFiltroCor] = useState(null);
+        const corCnt = (cc) => base.filter((x) => corRenov(x.dias) === cc).length;
+        const listaF = filtroCor ? lista.filter(({ dias }) => corRenov(dias) === filtroCor) : lista;
+        const legenda = [
+          { cor: "green", dot: "bg-emerald-500", label: "tranquilo (45d+)", n: corCnt("green") },
+          { cor: "amber", dot: "bg-amber-400", label: "atenção (30–45d)", n: corCnt("amber") },
+          { cor: "orange", dot: "bg-orange-500", label: "proposta (15–30d)", n: corCnt("orange") },
+          { cor: "red", dot: "bg-red-500", label: "urgente (<15d/venc.)", n: corCnt("red") },
+          { cor: "slate", dot: "bg-slate-700", label: "sem data", n: corCnt("slate") },
+        ];
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <KpiMini label="Vencidas" value={vencidas} sub="renegociar já" tone={vencidas ? "red" : "green"} />
+              <KpiMini label="Próximos 30 dias" value={d30} tone={d30 ? "amber" : "slate"} />
+              <KpiMini label="Risco de não renovar" value={emRisco} sub="≤45d + chance baixa" tone={emRisco ? "red" : "green"} />
+              <KpiMini label="Sem data no ClickUp" value={semData} sub="cadastrar contrato" tone={semData ? "amber" : "green"} />
+              <KpiMini label="Chance média" value={chanceMedia + "%"} sub="de renovação" tone={chanceMedia >= 70 ? "green" : chanceMedia >= 45 ? "amber" : "red"} />
+            </div>
+            <div className={`${CARD} overflow-hidden`}>
+              <div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between gap-2">
+                <span className={H}>Renovações · todos os clientes</span>
+                <select value={ord} onChange={(ev) => setOrd(ev.target.value)} aria-label="Ordenar renovações" className="text-[12px] bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 focus:outline-none focus:border-slate-500">
+                  <option value="proxima">Vence antes (mais próxima)</option>
+                  <option value="distante">Vence depois (mais tempo)</option>
+                  <option value="critico">Mais crítico</option>
+                </select>
+              </div>
+              <FiltroCores itens={legenda} ativo={filtroCor} onToggle={(c) => setFiltroCor((f) => (f === c ? null : c))} />
+              <div className="divide-y divide-slate-800 fd-stagger">
+                {listaF.length === 0 && <div className="px-4 py-8 text-center text-[13px] text-slate-500">Nenhum cliente nessa cor.</div>}
+                {listaF.map(({ escola: e, dias }) => { const cor = corRenov(dias); return (
+                  <button key={e.id} onClick={() => abrirCliente(e.id)} className={`group w-full text-left px-4 py-3 ${ROW_HOVER} flex items-center gap-3`}>
+                    <span className={`w-1 self-stretch rounded-full shrink-0 ${BARRA[cor]}`} />
+                    <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-sm truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}{dias == null && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-700/60 text-slate-300">sem data no ClickUp</span>}{dias != null && dias <= 45 && e.crit.chanceRenovar < 45 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300">risco de não renovar</span>}</div><div className="text-[12px] text-slate-400 mt-0.5 flex items-center gap-2"><span className={dias == null ? "text-slate-500 italic" : `${TXT[cor]} font-bold`}>{dias == null ? "cadastrar fim do contrato" : renovTxt(dias)}</span><span className="text-slate-600">·</span><span>{mesesAtivoTxt(e)} ativo</span></div></div>
+                    <div className="hidden sm:flex gap-1 shrink-0"><NpsChip label="ext" valor={e.npsExterno} /></div>
+                    <ChanceBar pct={e.crit.chanceRenovar} nivel={e.crit.chanceNivel} />
+                    <Chevron />
+                  </button>
+                ); })}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------------- REUNIÕES (quinzenal + pauta) ---------------- */
+      function Reunioes({ escolas, showSquad, abrirCliente }) {
+        const [desc, setDesc] = useState(true); // true = mais atrasado primeiro
+        const [, setTick] = useState(0); // re-render ao marcar/desmarcar tentativa (M5d)
+        const lista = escolas.map((e) => ({
+          e,
+          dias: e.crit.diasSemReuniao,
+          pendente: e.crit.semReuniao,
+          temUltima: !!e.ultimaReuniao,
+          proxDias: e.proximaReuniao ? diasAte(e.proximaReuniao) : null,
+        }));
+        lista.sort((a, b) => (desc ? b.dias - a.dias : a.dias - b.dias));
+        const pendentes = lista.filter((x) => x.pendente).length;
+        const agendadas = lista.filter((x) => x.proxDias != null && x.proxDias >= 0).length;
+        // Cor por cadência (quinzenal): AZUL = já marcada; senão pelo tempo sem reunião.
+        const corDe = (x) => {
+          const agendada = x.proxDias != null && x.proxDias >= 0;
+          const emDia = x.temUltima && x.dias < 12;                    // reunião recente (<12d) -> não precisa contato
+          if (!agendada && !emDia && FD.clienteStore.tentativa(x.e.nome).ativa) return "tentativa"; // contato já feito (M5d)
+          if (agendada) return "blue";                                 // reunião marcada
+          if (!x.temUltima) return "slate";                            // sem registro de reunião
+          const d = x.dias;
+          if (d >= 15) return "red";                                   // passou da quinzena -> MUITO CRÍTICO
+          if (d >= 12) return "amber";                                 // atenção (chegando nos 15d)
+          return "green";                                              // em dia
+        };
+        const BARRA = { tentativa: "bg-violet-500", blue: "bg-blue-500", green: "bg-emerald-500", amber: "bg-amber-400", orange: "bg-orange-500", red: "bg-red-500", slate: "bg-slate-700" };
+        const TXT = { tentativa: "text-violet-300", blue: "text-blue-300", green: "text-emerald-300", amber: "text-amber-300", orange: "text-orange-300", red: "text-red-300", slate: "text-slate-400" };
+        const [filtroCor, setFiltroCor] = useState(null);
+        const corCnt = (cc) => lista.filter((x) => corDe(x) === cc).length;
+        const listaF = filtroCor ? lista.filter((x) => corDe(x) === filtroCor) : lista;
+        const legenda = [
+          { cor: "blue", dot: "bg-blue-500", label: "marcada", n: corCnt("blue") },
+          { cor: "green", dot: "bg-emerald-500", label: "em dia (<12d)", n: corCnt("green") },
+          { cor: "amber", dot: "bg-amber-400", label: "atenção (12–14d)", n: corCnt("amber") },
+          { cor: "red", dot: "bg-red-500", label: "muito crítico (15d+)", n: corCnt("red") },
+          { cor: "tentativa", dot: "bg-violet-500", label: "contato feito (24h)", n: corCnt("tentativa") },
+          { cor: "slate", dot: "bg-slate-700", label: "sem registro", n: corCnt("slate") },
+        ];
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <KpiMini label="Pendentes (+15d)" value={pendentes} sub="agendar já" tone={pendentes ? "red" : "green"} />
+              <KpiMini label="Reuniões marcadas" value={agendadas} sub="já agendadas" tone={agendadas ? "green" : "slate"} />
+              <KpiMini label="Em dia" value={lista.length - pendentes} tone="green" />
+              <KpiMini label="Carteira" value={lista.length} sub="cadência quinzenal" tone="slate" />
+            </div>
+            <div className={`${CARD} overflow-hidden`}>
+              <div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between">
+                <span className={H}>Reuniões · todos os clientes</span>
+                <button onClick={() => setDesc((d) => !d)} className="text-[12px] font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg px-2.5 py-1 inline-flex items-center gap-1">{desc ? "Mais atrasado primeiro" : "Mais recente primeiro"} <span className="text-slate-500">{desc ? "↓" : "↑"}</span></button>
+              </div>
+              <FiltroCores itens={legenda} ativo={filtroCor} onToggle={(c) => setFiltroCor((f) => (f === c ? null : c))} />
+              {listaF.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">Nenhum cliente nessa cor.</div> : (
+                <div className="divide-y divide-slate-800 fd-stagger">
+                  {listaF.map((x) => { const { e, dias, temUltima, proxDias } = x; const agendada = proxDias != null && proxDias >= 0; const podeContato = !agendada && !(temUltima && dias < 12); const cor = corDe(x); const tent = FD.clienteStore.tentativa(e.nome); return (
+                    <div key={e.id} className={`group w-full ${ROW_HOVER} flex items-center gap-3 px-4 py-3 ${cor === "tentativa" ? "bg-violet-500/10" : cor === "blue" ? "bg-blue-500/5" : ""}`}>
+                      <span className={`w-1 self-stretch rounded-full shrink-0 ${BARRA[cor]}`} />
+                      <Semaforo nivel={e.crit.nivel} size={10} />
+                      <button onClick={() => abrirCliente(e.id)} className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-sm truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}{agendada && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-300">📅 marcada</span>}{tent.ativa && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300">✓ contato feito</span>}</div>
+                        <div className={`text-[12px] mt-0.5 ${tent.ativa ? "text-violet-300/90 font-semibold" : agendada ? "text-blue-300/90 font-semibold" : "text-slate-500"}`}>{tent.ativa ? `contato feito · reseta em ${Math.ceil(tent.restanteMs / 3600000)}h` : agendada ? `marcada p/ ${dataCurta(e.proximaReuniao)} · em ${proxDias}d` : (proxDias != null ? "próxima vencida — reagendar" : "sem reunião agendada")}</div>
+                      </button>
+                      <span className={`text-[12px] font-bold shrink-0 ${TXT[cor]}`}>{temUltima ? `${dias}d sem reunião` : "nunca"}</span>
+                      {podeContato && (tent.ativa
+                        ? <button onClick={() => { FD.clienteStore.limparTentativa(e.nome); setTick((t) => t + 1); }} title="Desfazer — o contato ainda não foi feito" className="text-[11px] font-semibold text-violet-200 bg-violet-500/15 hover:bg-violet-500/25 rounded-lg px-2 py-1 shrink-0">desfazer</button>
+                        : <button onClick={() => { FD.clienteStore.marcarTentativa(e.nome); setTick((t) => t + 1); }} title="Sinaliza que você já fez o contato para agendar a reunião (reseta sozinho em 24h)" className="text-[11px] font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 rounded-lg px-2 py-1 shrink-0">✓ marcar contato</button>)}
+                      <Chevron />
+                    </div>
+                  ); })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------------- NPS (dividido: externo x interno) ---------------- */
+      function NpsCard({ titulo, subtitulo, bloco, accent }) {
+        const total = bloco.respondentes || 1;
+        const pct = (n) => (n / total) * 100;
+        const m = bloco.media == null ? null : Number(bloco.media);
+        // mesmo critério de corNps (>=7 promotor · >=6 neutro · >=5 insatisfeito · <5 crítico)
+        const scoreTone = { green: "text-emerald-400", amber: "text-amber-400", orange: "text-orange-400", red: "text-red-400", slate: "text-slate-400" }[corNps(m)] || "text-slate-400";
+        return (
+          <div className={`${CARD} p-5`}>
+            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full" style={{ background: accent }} /><div className="text-sm font-bold text-slate-100">{titulo}</div></div>
+            <div className="text-[11px] text-slate-500 mt-0.5">{subtitulo}</div>
+            <div className="flex items-baseline gap-2 mt-3"><span className={`text-5xl font-extrabold tracking-tight fd-neon ${scoreTone}`}>{bloco.media == null ? "—" : npsDisp(bloco.media)}</span><span className="text-sm text-slate-400">deste mês /5 · {bloco.respondentes} respostas</span></div>
+            {bloco.media3m != null && <div className="mt-1 text-[12px] text-slate-400">Geral últimos 3 meses: <span className="font-bold text-slate-200 fd-neon">{npsDisp(bloco.media3m)}</span> <span className="text-slate-500">/5</span></div>}
+            <div className="mt-4 h-2.5 rounded-full overflow-hidden flex bg-slate-800"><div style={{ width: pct(bloco.prom) + "%" }} className="bg-emerald-500 fd-grow transition-[width] duration-700 ease-out" /><div style={{ width: pct(bloco.neutro) + "%" }} className="bg-slate-500 fd-grow transition-[width] duration-700 ease-out" /><div style={{ width: pct(bloco.detr) + "%" }} className="bg-red-500 fd-grow transition-[width] duration-700 ease-out" /></div>
+            <div className="flex justify-between mt-2 text-[12px]"><span className="text-emerald-300">{bloco.prom} promotores</span><span className="text-slate-400">{bloco.neutro} neutros</span><span className="text-red-300">{bloco.detr} detratores</span></div>
+            <div className="text-[11px] text-slate-500 mt-2">{bloco.semResposta} sem coleta · índice NPS {bloco.score == null ? "—" : bloco.score} <span className="text-slate-600">(promotores − detratores, −100 a 100)</span></div>
+          </div>
+        );
+      }
+      function NpsView({ escolas, showSquad, abrirCliente }) {
+        const r = FD.engine.npsResumo(escolas);
+        const setoresResumo = FD.engine.npsSetoresResumo(escolas); // diagnóstico agregado por setor (M1)
+        const [ascExt, setAscExt] = useState(true); // ordenação INDEPENDENTE por lista
+        const [ascInt, setAscInt] = useState(true);
+        const [filtroExt, setFiltroExt] = useState(null); // filtro de cor INDEPENDENTE por lista
+        const [filtroInt, setFiltroInt] = useState(null);
+        const externos = escolas.filter((e) => e.npsExterno != null).sort((a, b) => (ascExt ? 1 : -1) * (a.npsExterno - b.npsExterno));
+        const internos = escolas.filter((e) => e.npsInterno != null).sort((a, b) => (ascInt ? 1 : -1) * (a.npsInterno - b.npsInterno));
+        // Funções (não componentes): chamadas como {ordBtn(...)} / {listaCli(...)} —
+        // assim o React NÃO vê um tipo novo a cada render e as listas reconciliam
+        // no lugar (preserva scroll e não re-anima o stagger a cada filtro/ordenação).
+        const ordBtn = (asc, setAsc) => (
+          <button onClick={() => setAsc((a) => !a)} className="text-[11px] font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded px-2 py-0.5 shrink-0">{asc ? "pior → melhor ↑" : "melhor → pior ↓"}</button>
+        );
+        // Cor por NPS (clássico, detrator dividido em 2): promotor / neutro / insatisfeito / crítico.
+        const tone = (v) => NPS_TXT[corNps(v)];
+        const legendaNps = (campo) => {
+          const cnt = (cc) => escolas.filter((e) => e[campo] != null && corNps(e[campo]) === cc).length;
+          return [
+            { cor: "green", dot: "bg-emerald-500", label: "promotor (7+)", n: cnt("green") },
+            { cor: "amber", dot: "bg-amber-400", label: "neutro (6–7)", n: cnt("amber") },
+            { cor: "orange", dot: "bg-orange-500", label: "insatisfeito (5–6)", n: cnt("orange") },
+            { cor: "red", dot: "bg-red-500", label: "crítico (≤4)", n: cnt("red") },
+          ];
+        };
+        const fExt = filtroExt ? externos.filter((e) => corNps(e.npsExterno) === filtroExt) : externos;
+        const fInt = filtroInt ? internos.filter((e) => corNps(e.npsInterno) === filtroInt) : internos;
+        const listaCli = (itens, campo, vazio) => (
+          itens.length === 0 ? <div className="px-4 py-8 text-center text-sm text-slate-500">{vazio}</div> :
+          <div className="divide-y divide-slate-800 max-h-96 overflow-auto fd-stagger">{itens.map((e) => { const v = e[campo]; const cor = corNps(v); return (
+            <button key={e.id} onClick={() => abrirCliente(e.id)} className={`group w-full text-left px-4 py-2.5 ${ROW_HOVER} flex items-center gap-3 ${cor === "red" ? "bg-red-500/5" : ""}`}>
+              <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-[13px] truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}{cor === "red" && <span className="text-[10px] font-bold text-red-300 bg-red-500/15 rounded px-1.5">crítico</span>}{cor === "orange" && <span className="text-[10px] font-bold text-orange-300 bg-orange-500/15 rounded px-1.5">insatisfeito</span>}</div><div className="text-[11px] text-slate-500 mt-0.5">renovar: {e.crit.chanceRenovar}%{e.crit.semReuniao ? ` · ${e.crit.diasSemReuniao}d sem reunião` : ""}</div></div>
+              <span className={`text-base font-bold shrink-0 ${tone(v)}`}>{npsDisp(v)}</span><Chevron />
+            </button>
+          ); })}</div>
+        );
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <NpsCard titulo="NPS Externo" subtitulo="satisfação das escolas (clientes)" bloco={r.externo} accent="#22c55e" />
+              <NpsCard titulo="NPS Interno" subtitulo="avaliação do time sobre cada conta" bloco={r.interno} accent="#60a5fa" />
+            </div>
+            {setoresResumo.setores.length > 0 && (
+              <div className={`${CARD} p-5`}>
+                <div className="font-bold text-slate-100 text-sm flex items-center gap-2">🔍 Diagnóstico por setor <span className="text-[11px] text-slate-500 font-medium">· NPS externa · média do escopo atual</span></div>
+                <div className="text-[12px] mt-1 mb-3">{setoresResumo.fracos.length
+                  ? <span className="text-slate-400">⚠ Setores a melhorar: <b className="text-rose-300">{setoresResumo.fracos.map((s) => s.pergunta).join(" · ")}</b></span>
+                  : <span className="text-emerald-300">Todos os setores bem avaliados pelos clientes 👏</span>}</div>
+                <div className="space-y-1.5">
+                  {setoresResumo.setores.map((s, i) => { const cor = corNps(s.media); return (
+                    <div key={i} className="flex items-center gap-2.5 text-[13px]">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${NPS_DOT[cor]}`} />
+                      <span className="flex-1 min-w-0 text-slate-300 truncate" title={s.pergunta}>{s.pergunta}</span>
+                      <span className="text-[10px] text-slate-500 hidden sm:inline">{s.nClientes} cliente{s.nClientes > 1 ? "s" : ""}</span>
+                      {s.fraco && <span className="text-[10px] font-bold text-rose-300 bg-rose-500/15 rounded px-1.5">melhorar</span>}
+                      <span className={`font-extrabold w-9 text-right fd-neon ${NPS_TXT[cor]}`}>{npsDisp(s.media)}</span>
+                    </div>
+                  ); })}
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={CARD}><div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between gap-2"><span className="truncate"><span className="font-bold text-slate-100">Notas externas</span> <span className="text-slate-500">· cliente avalia</span></span><div className="flex items-center gap-2 shrink-0">{ordBtn(ascExt, setAscExt)}<span className="text-slate-500 text-[12px]">{externos.length}</span></div></div><FiltroCores itens={legendaNps("npsExterno")} ativo={filtroExt} onToggle={(c) => setFiltroExt((f) => (f === c ? null : c))} />{listaCli(fExt, "npsExterno", "Nenhuma nota nessa faixa.")}</div>
+              <div className={CARD}><div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between gap-2"><span className="truncate"><span className="font-bold text-slate-100">Notas internas</span> <span className="text-slate-500">· time avalia</span></span><div className="flex items-center gap-2 shrink-0">{ordBtn(ascInt, setAscInt)}<span className="text-slate-500 text-[12px]">{internos.length}</span></div></div><FiltroCores itens={legendaNps("npsInterno")} ativo={filtroInt} onToggle={(c) => setFiltroInt((f) => (f === c ? null : c))} />{listaCli(fInt, "npsInterno", "Nenhuma nota interna ainda.")}</div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------------- CLIENTES ---------------- */
+      function Clientes({ escolas, showSquad, abrirCliente }) {
+        const [ord, setOrd] = useState("critico");
+        const [filtroCor, setFiltroCor] = useState(null);
+        let ordenadas;
+        if (ord === "critico") ordenadas = FD.engine.prioritarios(escolas);
+        else {
+          const campo = ord.indexOf("int") === 0 ? "npsInterno" : "npsExterno";
+          const melhor = ord.indexOf("melhor") >= 0;
+          const com = escolas.filter((e) => e[campo] != null).sort((a, b) => (melhor ? b[campo] - a[campo] : a[campo] - b[campo]));
+          const sem = escolas.filter((e) => e[campo] == null); // sem nota vão pro fim
+          ordenadas = com.concat(sem);
+        }
+        // filtro por cor de criticidade (verde/amarelo/laranja/vermelho)
+        const NIVCOR = { verde: "green", amarelo: "amber", laranja: "orange", vermelho: "red" };
+        const corCnt = (cc) => escolas.filter((e) => NIVCOR[e.crit.nivel] === cc).length;
+        const ordenadasF = filtroCor ? ordenadas.filter((e) => NIVCOR[e.crit.nivel] === filtroCor) : ordenadas;
+        const legenda = [
+          { cor: "green", dot: "bg-emerald-500", label: "saudável", n: corCnt("green") },
+          { cor: "amber", dot: "bg-amber-400", label: "atenção", n: corCnt("amber") },
+          { cor: "orange", dot: "bg-orange-500", label: "crítico", n: corCnt("orange") },
+          { cor: "red", dot: "bg-red-500", label: "muito crítico", n: corCnt("red") },
+        ];
+        return (
+          <div className={`${CARD} overflow-hidden`}>
+            <div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between gap-2">
+              <span className={H}>Clientes</span>
+              <select value={ord} onChange={(ev) => setOrd(ev.target.value)} aria-label="Ordenar clientes" className="text-[12px] bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 focus:outline-none focus:border-slate-500">
+                <option value="critico">Mais crítico</option>
+                <option value="ext_pior">NPS externo: pior → melhor</option>
+                <option value="ext_melhor">NPS externo: melhor → pior</option>
+                <option value="int_pior">NPS interno: pior → melhor</option>
+                <option value="int_melhor">NPS interno: melhor → pior</option>
+              </select>
+            </div>
+            <FiltroCores itens={legenda} ativo={filtroCor} onToggle={(c) => setFiltroCor((f) => (f === c ? null : c))} />
+            <div className="divide-y divide-slate-800 fd-stagger">
+              {ordenadasF.length === 0 && <div className="px-4 py-8 text-center text-[13px] text-slate-500">Nenhum cliente nessa cor.</div>}
+              {ordenadasF.map((e) => (
+                <button key={e.id} onClick={() => abrirCliente(e.id)} className={`group w-full text-left px-4 py-3 ${ROW_HOVER} flex items-center gap-3 transition`}>
+                  <Semaforo nivel={e.crit.nivel} size={11} />
+                  <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-sm truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}{e.fase === "onboarding" && <span className="text-[10px] bg-indigo-500/15 text-indigo-300 rounded px-1.5 py-0.5 font-semibold">onboarding</span>}{temExcecao(e) && <span className="text-[10px] bg-amber-500/15 text-amber-300 rounded px-1.5 py-0.5 font-semibold" title="Preenchimento fora do padrão">⚠ exceção</span>}</div><div className="text-[12px] text-slate-400 truncate mt-0.5">{e.crit.motivos.length ? e.crit.motivos.slice(0, 2).join(" · ") : "Sem alertas"}</div></div>
+                  <div className="hidden sm:flex gap-1 shrink-0"><NpsChip label="ext" valor={e.npsExterno} /><NpsChip label="int" valor={e.npsInterno} /></div>
+                  <Chevron />
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------------- CLIENTES OUT (saídas + LTV/churn — métricas da empresa) ---------------- */
+      function ClientesOut({ escolasOut, ltv, abrirCliente }) {
+        const motChip = (m) => /churn/.test(norm(m)) ? "text-rose-300" : /fim de contrato|renov/.test(norm(m)) ? "text-slate-200" : "text-amber-300";
+        const porSquad = FD.integrations.ltvPorSquad ? FD.integrations.ltvPorSquad() : null; // LTV médio por squad (M2)
+        return (
+          <div className="space-y-4">
+            <div className="text-[12px] text-slate-400 flex items-center gap-1.5"><span>🏢</span> Métricas consolidadas — LTV e saídas são separados por squad quando o cliente casa com a carteira; o restante entra em <b className="text-slate-300">sem squad</b>.</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <KpiMini label="LTV médio" value={ltv && ltv.ltvMedio != null ? `${ltv.ltvMedio}` : "—"} sub="meses de vida (todos)" tone="green" />
+              <KpiMini label="LTV 2 meses+" value={ltv && ltv.ltv2m != null ? `${ltv.ltv2m}` : "—"} sub={ltv ? `${ltv.retidos2m} clientes 2m+` : "meses"} tone="green" />
+              <KpiMini label="Churn" value={ltv ? ltv.churn : "—"} sub={ltv ? `${ltv.churnRate}% · ${ltv.saidas} saídas` : "sem dados"} tone={ltv && ltv.churnRate >= 15 ? "red" : ltv && ltv.churnRate >= 8 ? "amber" : "green"} />
+              <KpiMini label="Ativos" value={ltv ? ltv.ativos : "—"} sub={ltv ? `de ${ltv.total} atendidos` : ""} tone="slate" />
+            </div>
+            {porSquad && (porSquad.azul || porSquad.laranja) && (
+              <div className={`${CARD} p-4`}>
+                <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-3">🏅 LTV médio por squad <span className="text-[11px] text-slate-500 font-medium">· meses de vida{porSquad.semSquad ? ` · ${porSquad.semSquad} sem squad` : ""}</span></div>
+                <div className="grid grid-cols-2 gap-3">
+                  {["azul", "laranja"].map((sq) => { const R = porSquad[sq]; return (
+                    <div key={sq} className="bg-slate-800/60 rounded-xl px-4 py-3 border border-slate-800">
+                      <SquadBadge squad={sq} small />
+                      <div className="text-2xl font-extrabold text-emerald-300 mt-1.5 fd-neon">{R && R.ltvMedio != null ? R.ltvMedio : "—"}<span className="text-[12px] text-slate-500 font-normal"> meses</span></div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{R && R.total ? `${R.ativos} ativos · ${R.saidas} saídas` : "sem clientes casados"}</div>
+                    </div>
+                  ); })}
+                </div>
+              </div>
+            )}
+            {ltv && ltv.motivos && ltv.motivos.length > 0 && (
+              <div className={`${CARD} p-4`}>
+                <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-3">📉 Motivos das saídas <span className="text-[11px] text-slate-500 font-medium">· {ltv.saidas} saídas no total</span></div>
+                <div className="space-y-2">{ltv.motivos.map((m, i) => { const pct = ltv.saidas ? Math.round((m.n / ltv.saidas) * 100) : 0; return (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className={`text-[13px] w-32 sm:w-48 shrink-0 truncate font-medium ${motChip(m.motivo)}`} title={m.motivo}>{m.motivo}</span>
+                    <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden"><div className={`h-full fd-grow rounded-full ${/churn/.test(norm(m.motivo)) ? "bg-rose-500" : "bg-slate-500"}`} style={{ width: pct + "%" }} /></div>
+                    <span className="text-[12px] font-bold text-slate-300 w-16 text-right">{m.n} · {pct}%</span>
+                  </div>
+                ); })}</div>
+              </div>
+            )}
+            <div className={`${CARD} overflow-hidden`}>
+              <div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between"><span className={H}>Clientes que saíram</span><span className="text-slate-500 text-[12px]">{escolasOut.length}</span></div>
+              {escolasOut.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">{ltv ? "Nenhum cliente marcado como saída na planilha." : "Configure a planilha de LTV/Saídas em ⚙ Integrações."}</div> : (
+                <div className="divide-y divide-slate-800 fd-stagger">
+                  {escolasOut.map((e) => (
+                    <button key={e.id} onClick={() => abrirCliente(e.id)} className={`group w-full text-left px-4 py-3 ${ROW_HOVER} flex items-center gap-3`}>
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${e.churn ? "bg-rose-500" : "bg-slate-500"}`} />
+                      <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-sm truncate">{e.nome}</span><span className={`text-[10px] rounded px-1.5 py-0.5 font-semibold ${e.churn ? "bg-rose-500/15 text-rose-300" : "bg-slate-700/60 text-slate-300"}`}>{e.churn ? "churn" : "saiu"}</span></div><div className="text-[12px] text-slate-400 truncate mt-0.5">{e.motivoSaida}{e.motivoDetalhe ? ` · ${e.motivoDetalhe}` : ""}{e.saidaEm ? ` · ${dataCurta(e.saidaEm)}` : ""}</div></div>
+                      <div className="hidden sm:block text-right shrink-0"><div className="text-[13px] font-bold text-slate-200">{e.tenureMeses != null ? `${e.tenureMeses}m` : "—"}</div><div className="text-[10px] text-slate-500">de casa</div></div>
+                      <Chevron />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------------- CHECKLIST + DETALHE ---------------- */
+      function ChecklistCard({ titulo, icon, itens = [] }) {
+        const feitos = itens.filter((i) => i.feito).length;
+        const total = itens.length;
+        // Sem task no ClickUp = nada pendente -> trata como concluído (não como 0/0).
+        const pct = total ? Math.round((feitos / total) * 100) : 100;
+        const completo = pct === 100;
+        return (
+          <div className={`${CARD} p-4`}>
+            <div className="flex items-center justify-between mb-2"><div className="font-bold text-slate-100 text-sm flex items-center gap-2">{icon} {titulo}</div><span className={`text-xs font-bold ${completo ? "text-emerald-400" : "text-slate-400"}`}>{total ? `${feitos}/${total}` : "sem pendências"}</span></div>
+            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-3"><div className={`h-full rounded-full fd-grow transition-[width] duration-700 ease-out ${completo ? "bg-emerald-500" : "bg-blue-500"}`} style={{ width: `${pct}%` }} /></div>
+            {total ? (
+              <ul className="space-y-1.5">{itens.map((i, idx) => <li key={idx} className={`flex items-center gap-2 text-sm ${i.excecao ? "bg-amber-500/10 -mx-1.5 px-1.5 py-1 rounded-lg" : ""}`}><span className={`grid place-items-center w-4 h-4 rounded-full text-[10px] shrink-0 ${i.excecao ? "bg-amber-500 text-white" : i.feito ? (i.na ? "bg-slate-600 text-slate-300" : "bg-emerald-500 text-white") : "bg-slate-700 text-slate-500"}`}>{i.excecao ? "!" : i.feito ? (i.na ? "–" : "✓") : ""}</span><span className={`shrink-0 ${i.excecao ? "text-amber-200 font-semibold" : i.feito && !i.na ? "text-slate-500 line-through" : "text-slate-200"}`}>{i.label}</span>{i.status && <span className={`text-[11px] ml-auto truncate ${i.excecao ? "text-amber-300/90 font-medium" : "text-slate-500"}`} title={i.status}>{i.status}</span>}</li>)}</ul>
+            ) : (
+              <div className="flex items-center gap-2 text-[12px] text-slate-500"><span className="grid place-items-center w-4 h-4 rounded-full text-[10px] bg-emerald-500 text-white">✓</span> Nenhuma etapa pendente no ClickUp</div>
+            )}
+          </div>
+        );
+      }
+      function Tile({ label, value, sub, tone }) {
+        const t = { red: "text-red-400", amber: "text-amber-400", orange: "text-orange-400", green: "text-emerald-400", blue: "text-blue-300", slate: "text-slate-100" }[tone] || "text-slate-100";
+        return <div className="bg-slate-800/60 rounded-xl px-4 py-3 border border-slate-800"><div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">{label}</div><div className={`text-lg font-extrabold mt-0.5 ${t}`}>{value}</div>{sub && <div className="text-[11px] text-slate-500">{sub}</div>}</div>;
+      }
+      // Link externo por cliente (Planilha comercial / Dashboard 24h) — Módulo 4.
+      // Guardado no navegador (FD.clienteStore). Edição por prompt (uso interno).
+      function LinkExterno({ canon, campo, icon, titulo, hint }) {
+        const [, setTick] = useState(0);
+        const url = FD.clienteStore.get(canon)[campo];
+        const editar = () => {
+          const v = window.prompt(`${titulo} — cole o link (deixe vazio para remover):`, url || "");
+          if (v === null) return; // cancelou
+          FD.clienteStore.setLink(canon, campo, v);
+          setTick((t) => t + 1);
+        };
+        return (
+          <div className="flex items-center gap-2 bg-slate-800/60 rounded-xl px-3 py-2.5 border border-slate-800">
+            <span className="text-lg shrink-0" aria-hidden="true">{icon}</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-semibold text-slate-100">{titulo}</div>
+              {url ? <a href={url} target="_blank" rel="noreferrer" className="text-[11px] text-blue-300 hover:underline truncate block">{url}</a> : <div className="text-[11px] text-slate-500">{hint}</div>}
+            </div>
+            {url && <a href={url} target="_blank" rel="noreferrer" className="text-[12px] font-semibold text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg px-2.5 py-1 shrink-0">abrir ↗</a>}
+            <button onClick={editar} className="text-[12px] font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-2.5 py-1 shrink-0">{url ? "editar" : "+ link"}</button>
+          </div>
+        );
+      }
+      function ClienteDetail({ escola, voltar }) {
+        const e = escola, c = e.crit;
+        const ehSolto = (d) => d.lista && /agente|criativo|solicita/i.test(d.lista);
+        const rotuloLista = (l) => (/criativo|solicita/i.test(l || "") ? "Criativos" : "Agente");
+        // Demandas unificadas: todas as abertas (pasta + Agente + Criativos),
+        // atrasadas no topo, + até 5 concluídas recentes das listas soltas.
+        const demAbertas = e.demandas.filter((d) => d.status !== "concluída").sort((a, b) => (b.atrasada ? 1 : 0) - (a.atrasada ? 1 : 0));
+        const demFeitos = e.demandas.filter((d) => d.status === "concluída" && ehSolto(d)).sort((a, b) => (b.feitoMs || 0) - (a.feitoMs || 0)).slice(0, 5);
+        const demLista = demAbertas.concat(demFeitos);
+        const diasRenov = diasAte(e.renovacaoEm);
+        const pauta = FD.engine.pautaReuniao(e);
+        const recs = FD.engine.recomendacoes(e);
+        const histExt = e.npsHistorico ? e.npsHistorico.map((h) => h.externo) : [];
+        const histInt = e.npsHistorico ? e.npsHistorico.map((h) => h.interno) : [];
+        const excec = excecoesDe(e);
+        // exibe na escala 1–5 (npsDisp), coerente com o resto do painel; o histórico é 0–10
+        const trend = (serie) => { const v = serie.filter((x) => x != null); if (v.length < 2) return "—"; const d = v[v.length - 1] - v[v.length - 2]; const a = d > 0 ? "▲" : d < 0 ? "▼" : "▬"; return `${npsDisp(v[v.length - 1])} ${a}${d !== 0 ? npsDisp(Math.abs(d)) : ""}`; };
+        return (
+          <div className="space-y-4">
+            <button onClick={voltar} className="text-sm text-slate-400 hover:text-slate-200">← voltar</button>
+            <div className={`${CARD} p-5`}>
+              <div className="flex items-center gap-3">{e.out ? <span className="inline-block w-3.5 h-3.5 rounded-full bg-rose-500 shrink-0" title="Cliente encerrado" /> : <Semaforo nivel={c.nivel} size={14} />}<div><h1 className="text-xl font-extrabold text-slate-100 tracking-tight">{e.nome}</h1><div className="flex items-center gap-2 mt-1.5 flex-wrap">{e.squad && <SquadBadge squad={e.squad} />}{e.out ? <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-rose-500/20 text-rose-300">Cliente encerrado</span> : <React.Fragment><span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${NIVEL[c.nivel].chip}`}>{NIVEL[c.nivel].label}</span>{c.riscoChurn && <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-red-500/20 text-red-300">⚠ risco de churn</span>}{e.fase === "onboarding" && <span className="text-[11px] bg-indigo-500/15 text-indigo-300 rounded-full px-2 py-0.5 font-semibold">em onboarding</span>}</React.Fragment>}{temExcecao(e) && <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-amber-500/15 text-amber-300">⚠ fora do padrão</span>}</div></div></div>
+              {c.motivos.length > 0 && <div className={`mt-3 rounded-xl ${NIVEL[c.nivel].chip} px-3 py-2`}><div className="text-[11px] uppercase tracking-wider font-semibold opacity-80 mb-1">O que fazer / por que está {NIVEL[c.nivel].label.toLowerCase()}</div><div className="flex flex-wrap gap-1.5">{c.motivos.map((m, i) => <span key={i} className="text-[12px] bg-slate-900/50 rounded px-2 py-0.5">{m}</span>)}</div></div>}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
+                <Tile label="NPS escola" value={e.npsExterno == null ? "—" : npsDisp(e.npsExterno)} sub={e.npsExterno3m != null ? `3 meses: ${npsDisp(e.npsExterno3m)} /5` : "este mês"} tone={e.npsExterno != null && e.npsExterno < 7 ? "red" : "green"} />
+                <Tile label="NPS time" value={e.npsInterno == null ? "—" : npsDisp(e.npsInterno)} sub={e.npsInterno3m != null ? `3 meses: ${npsDisp(e.npsInterno3m)} /5` : "este mês"} tone={e.npsInterno != null && e.npsInterno < 6 ? "amber" : "green"} />
+                <Tile label="Chance de renovar" value={c.chanceRenovar + "%"} tone={{ verde: "green", amarelo: "amber", vermelho: "red" }[c.chanceNivel]} />
+                <Tile label="Última reunião" value={e.ultimaReuniao ? relativo(e.ultimaReuniao) : "nunca"} sub={e.proximaReuniao ? <span className="text-blue-300 font-semibold">📅 reunião marcada · {dataCurta(e.proximaReuniao)}</span> : "sem próxima agendada"} tone={e.proximaReuniao ? "blue" : c.semReuniao ? "red" : "slate"} />
+                <Tile label="Renovação" value={diasRenov == null ? "—" : renovTxt(diasRenov)} sub={diasRenov == null ? "sem data cadastrada" : e.termoMeses ? `contrato · ${e.termoMeses}m` : "fim do contrato"} tone={diasRenov == null ? "slate" : diasRenov < 0 ? "red" : diasRenov <= 30 ? "amber" : "slate"} />
+                <Tile label="Tempo ativo" value={mesesAtivoTxt(e)} sub={`desde ${dataCurta(e.inicioContrato)}`} tone="slate" />
+              </div>
+            </div>
+            <div className={`${CARD} p-4`}>
+              <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-3">🔗 Materiais do cliente <span className="text-[11px] text-slate-500 font-medium">· planilha comercial e dashboard externo · salvos neste navegador</span></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <LinkExterno canon={e.nome} campo="planilhaComercial" icon="📊" titulo="Planilha comercial" hint="anexe o link da planilha comercial" />
+                <LinkExterno canon={e.nome} campo="dashboard24h" icon="📈" titulo="Dashboard 24h" hint="link do dashboard externo (24h)" />
+              </div>
+            </div>
+            {e.out && (
+              <div className={`${CARD} p-4`}>
+                <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-3">🚪 Saída do cliente <span className="text-[11px] text-slate-500 font-medium">· planilha de LTV/Saídas</span></div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Tile label="Motivo" value={e.motivoSaida || "—"} tone={e.churn ? "red" : "amber"} />
+                  <Tile label="Tipo" value={e.churn ? "Churn" : "Saída natural"} tone={e.churn ? "red" : "slate"} />
+                  <Tile label="Tempo de casa" value={e.tenureMeses != null ? `${e.tenureMeses} meses` : "—"} tone="slate" />
+                  <Tile label="Saiu em" value={e.saidaEm ? dataCurta(e.saidaEm) : "—"} sub={e.inicioContrato ? `entrou ${dataCurta(e.inicioContrato)}` : ""} tone="slate" />
+                </div>
+                {e.motivoDetalhe && <div className="mt-3 text-[13px] text-slate-300 bg-slate-800/50 rounded-lg px-3 py-2"><span className="text-slate-500 text-[11px] uppercase tracking-wider font-semibold">Por que saiu</span><div className="mt-0.5">{e.motivoDetalhe}</div></div>}
+              </div>
+            )}
+            {excec.length > 0 && (
+              <div className={`${CARD} p-4`} style={{ borderColor: "rgba(245,158,11,.35)" }}>
+                <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-2">⚠️ Fora do padrão <span className="text-[11px] text-slate-500 font-medium">· como é feito neste cliente específico</span></div>
+                <div className="space-y-1.5">{excec.map((i, idx) => <div key={idx} className="flex items-start gap-2 text-[13px] text-slate-300"><span className="text-amber-300 mt-0.5">•</span><span><b className="text-amber-200">{i.label}:</b> {i.status}</span></div>)}</div>
+              </div>
+            )}
+            {!e.out && (
+              <div className={`${CARD} p-4 ${c.nivel === "vermelho" ? "fd-glow" : ""}`}>
+                <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-3">🧭 Plano para reverter <span className="text-slate-500 font-medium text-[12px]">cruzando os sinais deste cliente</span></div>
+                <ul className="space-y-2">{recs.map((rr, i) => <li key={i} className="flex items-start gap-2.5 text-sm text-slate-200"><span className="grid place-items-center w-7 h-7 rounded-lg bg-slate-800 shrink-0">{rr.icon}</span><span className="pt-0.5">{rr.txt}</span></li>)}</ul>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className={`${CARD} p-4`}>
+                <div className="flex items-center justify-between mb-3"><div className="font-bold text-slate-100 text-sm flex items-center gap-2">📈 Evolução de NPS</div><span className="text-[11px] text-slate-500">atualizado {e.npsAtualizadoEm ? relativo(e.npsAtualizadoEm) : "—"}</span></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><div className="flex items-center justify-between text-[12px] mb-1"><span className="text-emerald-300 font-semibold">Externo · escola</span><span className="text-slate-400">{trend(histExt)}</span></div><Sparkline serie={histExt} color="#34d399" /></div>
+                  <div><div className="flex items-center justify-between text-[12px] mb-1"><span className="text-blue-300 font-semibold">Interno · time</span><span className="text-slate-400">{trend(histInt)}</span></div><Sparkline serie={histInt} color="#60a5fa" /></div>
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2">{(e.npsHistorico || []).length} {(e.npsHistorico || []).length === 1 ? "mês" : "meses"} de histórico · cliente desde {dataCurta(e.inicioContrato)}</div>
+              </div>
+              <div className={`${CARD} p-4`}><div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-2">🗓️ Pauta sugerida para a próxima reunião</div><ul className="space-y-1.5">{pauta.map((p, i) => <li key={i} className="text-sm text-slate-300 flex items-start gap-2"><span className="text-blue-400">•</span>{p}</li>)}</ul></div>
+            </div>
+            {e.npsSetores && e.npsSetores.length > 0 && (() => {
+              const fracos = e.npsSetores.filter((s) => s.media != null && s.media < 7);
+              return (
+                <div className={`${CARD} p-4`}>
+                  <div className="font-bold text-slate-100 text-sm flex items-center gap-2">🔍 Diagnóstico por setor <span className="text-[11px] text-slate-500 font-medium">· NPS externa · percepção do cliente</span></div>
+                  <div className="text-[12px] text-slate-400 mt-1 mb-3">{fracos.length ? <span>Pontos a melhorar no projeto dele: <b className="text-rose-300">{fracos.map((s) => s.pergunta).join(" · ")}</b></span> : <span>Todos os setores bem avaliados pelo cliente 👏</span>}</div>
+                  <div className="space-y-1.5">
+                    {e.npsSetores.map((s, i) => { const cor = corNps(s.media); return (
+                      <div key={i} className="flex items-center gap-2.5 text-[13px]">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${NPS_DOT[cor]}`} />
+                        <span className="flex-1 min-w-0 text-slate-300 truncate" title={s.pergunta}>{s.pergunta}</span>
+                        <span className="text-[10px] text-slate-500 hidden sm:inline">{NPS_LABEL[cor]}</span>
+                        {s.media != null && s.media < 7 && <span className="text-[10px] font-bold text-rose-300 bg-rose-500/15 rounded px-1.5">melhorar</span>}
+                        <span className={`font-extrabold w-9 text-right fd-neon ${NPS_TXT[cor]}`}>{s.media == null ? "—" : npsDisp(s.media)}</span>
+                      </div>
+                    ); })}
+                  </div>
+                </div>
+              );
+            })()}
+            {e.npsComentarios && e.npsComentarios.length > 0 && (
+              <div className={`${CARD} p-4`}>
+                <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-3">💬 O que o cliente comentou <span className="text-[11px] text-slate-500 font-medium">· pergunta aberta do NPS</span></div>
+                <div className="space-y-2">{e.npsComentarios.map((co, i) => (
+                  <div key={i} className="text-[13px] text-slate-300 bg-slate-800/50 rounded-lg px-3 py-2">
+                    <span>{co.texto}</span>
+                    {co.pergunta && <div className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">{co.pergunta}</div>}
+                  </div>
+                ))}</div>
+              </div>
+            )}
+            <div className={`${CARD} p-4`}><div className="flex items-center justify-between mb-2"><div className="font-bold text-slate-100 text-sm flex items-center gap-2">✅ Entregáveis</div><div className="flex items-center gap-2 text-[10px] text-slate-500"><span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" />marcado</span><span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" />enviado</span><span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" />feito</span></div></div>{e.entregaveis.length === 0 ? <div className="text-[12px] text-slate-500">Sem entregáveis cadastrados.</div> : <div className="flex flex-wrap gap-1.5">{e.entregaveis.map((i, idx) => { const c = corDem(i); return <span key={idx} className={`text-[12px] px-2 py-0.5 rounded-full ${c.cls}`}>{c.ic} {i.label}{i.status ? <span className="opacity-70"> · {i.status}</span> : ""}</span>; })}</div>}</div>
+            {(e.linhaEditorial != null || e.campanhaGoogle != null) && (
+              <div className={`${CARD} p-4`}>
+                <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-3">📋 Status do cliente <span className="text-[11px] text-slate-500 font-medium">· planilha de controle</span></div>
+                <div className="flex flex-wrap gap-2">
+                  {e.linhaEditorial != null && <span className={`text-[13px] px-2.5 py-1 rounded-lg font-semibold ${e.linhaEditorial === "Sim" ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"}`}>Linha Editorial: {e.linhaEditorial}</span>}
+                  {e.campanhaGoogle != null && (() => { const n = norm(e.campanhaGoogle); const cls = (!n || n === "nao" || /sem google/.test(n)) ? "bg-rose-500/15 text-rose-300" : /ativ|complet|feito|otimizacao completa/.test(n) ? "bg-emerald-500/15 text-emerald-300" : "bg-blue-500/15 text-blue-300"; return <span className={`text-[13px] px-2.5 py-1 rounded-lg font-semibold ${cls}`}>Campanha Google: {e.campanhaGoogle}</span>; })()}
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+              <ChecklistCard titulo="Onboarding" icon="🚀" itens={e.onboarding} />
+              <div className={CARD}>
+                <div className="px-4 py-3 border-b border-slate-800 text-sm flex justify-between"><span className={H}>Demandas</span><span className="text-slate-500">{demAbertas.length} abertas{demFeitos.length ? ` · ${demFeitos.length} recentes` : ""}</span></div>
+                {demLista.length === 0 ? <div className="px-4 py-6 text-center text-sm text-slate-500">Nenhuma demanda.</div> : <div className="divide-y divide-slate-800 fd-stagger">{demLista.map((d) => { const concl = d.status === "concluída"; return <div key={d.id} className={`px-4 py-2.5 flex items-center gap-3 ${d.atrasada ? "bg-red-500/10" : ""}`}><div className="flex-1 min-w-0"><div className={`text-sm font-semibold ${concl ? "text-slate-400 line-through" : "text-slate-100"}`}>{d.titulo}</div><div className="text-[12px] text-slate-400 flex items-center gap-1.5 mt-0.5">{d.lista && <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">{rotuloLista(d.lista)}</span>}<span className="truncate">{d.responsavel} · {d.status}</span></div></div><span className={`text-[12px] font-bold shrink-0 ${d.atrasada ? "text-red-400" : concl ? "text-emerald-400/70" : "text-slate-500"}`}>{concl ? "✓ feito" : d.atrasada ? `${Math.abs(diasAte(d.prazo))}d atraso` : (d.prazo ? dataCurta(d.prazo) : "—")}</span></div>; })}</div>}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ---------------- DEMANDAS ---------------- */
+      function Demandas({ escolas, showSquad, abrirCliente, resp, setResp, reps, respTasks, respLoading }) {
+        const hoje0 = new Date(FD.NOW); hoje0.setHours(0, 0, 0, 0);
+        const diffDias = (iso) => { const d = new Date(iso); d.setHours(0, 0, 0, 0); return Math.round((d - hoje0) / 86400000); };
+
+        const idPorNome = {};
+        escolas.forEach((e) => { idPorNome[e.nome] = e.id; });
+
+        // modo pessoa = TODAS as tarefas do responsável (qualquer lista, sob demanda);
+        // modo normal = demandas (Demandas Novas) de todos os clientes do squad.
+        const modoPessoa = !!resp;
+        // Separação por squad: esconde demandas atribuídas a alguém do OUTRO squad
+        // (ex.: Bruno/Cauã não aparecem no Laranja; João/Jon não aparecem no Azul).
+        // Caio está nos dois, então nunca é escondido. Não-representantes ficam.
+        const repsSet = new Set(reps || []);
+        const outros = TODOS_REPS.filter((n) => !repsSet.has(n));
+        const daOutraSquad = (d) => outros.some((r) => matchResp(d, r)) && !(reps || []).some((r) => matchResp(d, r));
+        let linhas = [];
+        if (modoPessoa) {
+          linhas = (respTasks || []).filter((d) => d.status !== "concluída")
+            .map((d) => ({ ...d, escola: { id: idPorNome[d.cliente], nome: d.cliente, squad: d.squad } }));
+        } else {
+          escolas.forEach((e) => e.demandas.filter((d) => d.status !== "concluída" && !daOutraSquad(d)).forEach((d) => linhas.push({ ...d, escola: e })));
+        }
+
+        // carga por responsável (atraso = prazo no passado)
+        const porResp = {};
+        linhas.forEach((d) => {
+          const r = porResp[d.responsavel] = porResp[d.responsavel] || { total: 0, atrasadas: 0, squad: d.escola.squad };
+          r.total++; if (d.prazo && diffDias(d.prazo) < 0) r.atrasadas++;
+        });
+        const gargalos = Object.entries(porResp).sort((a, b) => b[1].atrasadas - a[1].atrasadas || b[1].total - a[1].total);
+
+        // buckets por prazo
+        const buckets = { atras: [], hoje: [], prox: [], sem: [] };
+        linhas.forEach((d) => {
+          if (!d.prazo) return buckets.sem.push(d);
+          const k = diffDias(d.prazo);
+          if (k < 0) buckets.atras.push(d); else if (k === 0) buckets.hoje.push(d); else buckets.prox.push(d);
+        });
+        buckets.atras.sort((a, b) => diffDias(a.prazo) - diffDias(b.prazo));
+        buckets.prox.sort((a, b) => diffDias(a.prazo) - diffDias(b.prazo));
+
+        const Linha = (d) => (
+          <button key={d.id} onClick={() => d.escola.id != null && abrirCliente(d.escola.id)} className={`group w-full text-left px-3 py-2 ${ROW_HOVER} flex items-center gap-2.5`}>
+            <div className="flex-1 min-w-0"><div className="font-semibold text-slate-100 text-[13px] truncate">{d.titulo}</div><div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">{showSquad && <SquadBadge squad={d.escola.squad} small />}<span className="truncate">{d.escola.nome}</span>{modoPessoa && d.lista && <span className="text-slate-600 shrink-0">· {d.lista}</span>}</div></div>
+            {!modoPessoa && <span className="hidden sm:inline text-[11px] text-slate-400 w-24 text-right truncate">{d.responsavel}</span>}
+            <span className={`text-[11px] font-bold w-16 text-right ${d.prazo ? (diffDias(d.prazo) < 0 ? "text-red-400" : diffDias(d.prazo) === 0 ? "text-amber-400" : "text-slate-500") : "text-slate-600"}`}>{d.prazo ? (diffDias(d.prazo) < 0 ? `${-diffDias(d.prazo)}d` : diffDias(d.prazo) === 0 ? "hoje" : dataCurta(d.prazo)) : "—"}</span>
+          </button>
+        );
+        const secao = (titulo, cor, itens) => itens.length === 0 ? null : (
+          <div key={titulo} className={`${CARD} overflow-hidden`}>
+            <div className="px-3 py-2 border-b border-slate-800 text-[13px] flex items-center justify-between"><span className="font-bold text-slate-100 flex items-center gap-2"><span className="w-2 h-2 rounded-full" style={{ background: cor }} />{titulo}</span><span className="text-slate-500 text-[12px]">{itens.length}</span></div>
+            <div className="divide-y divide-slate-800/70">{itens.map(Linha)}</div>
+          </div>
+        );
+        return (
+          <div className="space-y-3">
+            {reps && reps.length > 0 && (
+              <div className={`${CARD} p-3`}>
+                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Participantes do squad <span className="normal-case font-normal text-slate-600">· clique para ver as tarefas de cada um</span></div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setResp(null)} className={`text-[13px] font-semibold rounded-xl px-3 py-1.5 transition active:scale-95 ${!resp ? "bg-blue-600 text-white" : "bg-slate-800/70 text-slate-300 hover:text-slate-100 border border-slate-700"}`}>Todos</button>
+                  {reps.map((r) => <button key={r} onClick={() => setResp(resp === r ? null : r)} className={`text-[13px] font-semibold rounded-xl px-3 py-1.5 transition active:scale-95 inline-flex items-center gap-1.5 ${resp === r ? "bg-blue-600 text-white fd-glow-on" : "bg-slate-800/70 text-slate-300 hover:text-slate-100 border border-slate-700"}`}><span>👤</span>{r}</button>)}
+                </div>
+              </div>
+            )}
+            {modoPessoa ? (
+              <div className={`${CARD} p-3 flex items-center justify-between gap-2`}><div className="text-[13px] text-slate-200"><b>Demandas de {resp}</b> <span className="text-slate-500">· todas as listas · {linhas.length} em aberto</span></div>{respLoading && <span className="text-[12px] text-blue-300 shrink-0">carregando…</span>}</div>
+            ) : (
+              <div className={`${CARD} p-3`}><div className="font-bold text-slate-100 text-[13px] mb-2">Carga por responsável <span className="text-slate-500 font-medium">(gargalo)</span></div><div className="flex flex-wrap gap-2">{gargalos.length === 0 ? <span className="text-slate-500 text-[12px]">Nenhuma demanda em aberto.</span> : gargalos.map(([nome, g]) => <div key={nome} className="flex items-center gap-2 bg-slate-800/70 border border-slate-700 rounded-xl px-2.5 py-1"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: SQUADS[g.squad].cor }} /><span className="text-[13px] font-semibold text-slate-200">{nome}</span><span className="text-[11px] text-slate-500">{g.total}</span>{g.atrasadas > 0 && <span className="text-[10px] font-bold text-red-300 bg-red-500/15 rounded px-1.5">{g.atrasadas} atras.</span>}</div>)}</div></div>
+            )}
+            {modoPessoa && respLoading && (
+              <div className={`${CARD} p-2 space-y-1.5`} aria-busy="true">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="fd-skel h-11 rounded-xl" />)}</div>
+            )}
+            {modoPessoa && !respLoading && linhas.length === 0 && <div className={`${CARD} p-6 text-center text-sm text-slate-500`}>Nenhuma tarefa em aberto para {resp}.</div>}
+            {secao("Atrasadas", "#f87171", buckets.atras)}
+            {secao("Para hoje", "#fbbf24", buckets.hoje)}
+            {secao("Próximas", "#60a5fa", buckets.prox)}
+            {secao("Sem prazo", "#64748b", buckets.sem)}
+          </div>
+        );
+      }
+
+      /* ---------------- INTEGRAÇÕES ---------------- */
+      function CampoIntegracao({ campo, valor, onChange }) {
+        const base = "w-full text-sm bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500";
+        return <label className="block"><span className="text-[12px] text-slate-400">{campo.label}</span>{campo.tipo === "textarea" ? <textarea rows={2} className={base + " mt-0.5 resize-y"} placeholder={campo.placeholder} value={valor} onChange={(e) => onChange(e.target.value)} /> : <input type={campo.tipo === "password" ? "password" : "text"} className={base + " mt-0.5"} placeholder={campo.placeholder} value={valor} onChange={(e) => onChange(e.target.value)} autoComplete="off" />}</label>;
+      }
+      function DiagResultado({ data }) {
+        const clientes = data.clientes || {};
+        const listas = data.listas || {};
+        const status = data.status || {};
+        const amostra = data.amostra || [];
+        const chip = "text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700";
+        const nomes = Object.keys(clientes);
+        return (
+          <div className="mt-2 rounded-lg border border-slate-700 bg-slate-900/60 p-2.5 space-y-2 text-[12px]">
+            <div className="text-emerald-300 font-semibold">✓ Conectou — {data.qtd_clientes} cliente(s) · {data.total_tasks} tarefa(s)</div>
+            <div>
+              <div className="text-slate-400 mb-1">Listas encontradas <span className="text-slate-500">(Demandas Novas / Rotinas / Onboarding em verde)</span></div>
+              <div className="flex flex-wrap gap-1">{Object.entries(listas).map(([k, v]) => <span key={k} className={chip + (/demanda|rotina|onboarding/i.test(k) ? " ring-1 ring-emerald-400/60 text-emerald-200" : "")}>{k} <span className="text-slate-500">· {v}</span></span>)}</div>
+            </div>
+            <div>
+              <div className="text-slate-400 mb-1">Clientes (pastas) — {nomes.length}</div>
+              <div className="flex flex-wrap gap-1">{nomes.length === 0 ? <span className="text-slate-500">nenhuma pasta neste space (clientes precisam estar em Pastas)</span> : nomes.map((n) => <span key={n} className={chip}>{n} <span className="text-slate-500">· {clientes[n]}</span></span>)}</div>
+            </div>
+            <div>
+              <div className="text-slate-400 mb-1">Status</div>
+              <div className="flex flex-wrap gap-1">{Object.entries(status).map(([k, v]) => <span key={k} className={chip}>{k} <span className="text-slate-500">· {v}</span></span>)}</div>
+            </div>
+            <div>
+              <div className="text-slate-400 mb-1">Amostra de tarefas</div>
+              <div className="space-y-1">{amostra.map((s, i) => <div key={i} className="rounded bg-slate-800/60 px-2 py-1"><div className="text-slate-200 font-medium truncate">{s.name}</div><div className="text-slate-500 truncate">{s.cliente || "—"} · {s.lista} · {s.status}{s.resp && s.resp.length ? " · " + s.resp.join(", ") : ""}</div></div>)}</div>
+            </div>
+          </div>
+        );
+      }
+      function DiagClickUp({ squad, getCreds, onPickSpace }) {
+        const [st, setSt] = useState({ loading: "", data: null, erro: null, spaces: null });
+        const testar = async () => {
+          setSt({ loading: "testar", data: null, erro: null, spaces: null });
+          try {
+            const { token, spaceId } = getCreds() || {};
+            const data = await FD.integrations.clickup.inspect({ token, spaceId, squad });
+            setSt({ loading: "", data, erro: null, spaces: null });
+          } catch (e) {
+            setSt({ loading: "", data: null, erro: e.message || String(e), spaces: null });
+          }
+        };
+        const listar = async () => {
+          setSt({ loading: "listar", data: null, erro: null, spaces: null });
+          try {
+            const { token } = getCreds() || {};
+            const r = await FD.integrations.clickup.listarSpaces({ token, squad });
+            setSt({ loading: "", data: null, erro: null, spaces: r.spaces || [] });
+          } catch (e) {
+            setSt({ loading: "", data: null, erro: e.message || String(e), spaces: null });
+          }
+        };
+        const btn = "text-[12px] font-semibold rounded-lg px-2.5 py-1.5 disabled:opacity-60";
+        return (
+          <div className="mt-2.5 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={testar} disabled={!!st.loading} className={btn + " bg-slate-700 hover:bg-slate-600 text-slate-100"}>{st.loading === "testar" ? "Conectando…" : "🔍 Testar conexão"}</button>
+              <button onClick={listar} disabled={!!st.loading} className={btn + " bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"}>{st.loading === "listar" ? "Buscando…" : "📋 Listar meus spaces"}</button>
+            </div>
+            {st.erro && <div className="rounded-lg border border-red-800 bg-red-950/40 text-red-200 text-[12px] px-2.5 py-1.5">{st.erro}</div>}
+            {st.spaces && (
+              <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-2.5 text-[12px] space-y-1">
+                <div className="text-slate-400">{st.spaces.length} space(s) — clique no <b>Space deste squad</b> para preencher o ID:</div>
+                <div className="max-h-52 overflow-auto space-y-1">
+                  {st.spaces.map((s) => <button key={s.id} onClick={() => onPickSpace && onPickSpace(s.id)} className="w-full text-left rounded bg-slate-800/60 hover:bg-slate-700 px-2 py-1"><div className="text-slate-200 font-medium truncate">{s.name}</div><div className="text-slate-500 truncate">{s.team} · <span className="text-slate-400">{s.id}</span></div></button>)}
+                  {st.spaces.length === 0 && <div className="text-slate-500">Nenhum space visível para este token.</div>}
+                </div>
+              </div>
+            )}
+            {st.data && <DiagResultado data={st.data} />}
+          </div>
+        );
+      }
+      function DiagCalendar({ squad, getCreds }) {
+        const [st, setSt] = useState({ loading: false, data: null, erro: null });
+        const testar = async () => {
+          setSt({ loading: true, data: null, erro: null });
+          try {
+            const { calendarId, apiKey } = getCreds() || {};
+            const data = await FD.integrations.googleCalendar.inspect({ calendarId, apiKey, squad });
+            setSt({ loading: false, data, erro: null });
+          } catch (e) {
+            setSt({ loading: false, data: null, erro: e.message || String(e) });
+          }
+        };
+        return (
+          <div className="mt-2.5 space-y-2">
+            <button onClick={testar} disabled={st.loading} className="text-[12px] font-semibold rounded-lg px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 disabled:opacity-60">{st.loading ? "Conectando…" : "🔍 Testar conexão"}</button>
+            {st.erro && <div className="rounded-lg border border-red-800 bg-red-950/40 text-red-200 text-[12px] px-2.5 py-1.5">{st.erro}</div>}
+            {st.data && (
+              <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-2.5 text-[12px] space-y-2">
+                <div className="text-emerald-300 font-semibold">✓ Conectou — {st.data.total} evento(s) na janela (−120d a +60d)</div>
+                <div className="space-y-1 max-h-60 overflow-auto">{(st.data.amostra || []).map((a, i) => { const cli = FD.clientes.nomeCanonico(a.titulo); const achou = cli && cli !== (a.titulo || "").trim(); return <div key={i} className="rounded bg-slate-800/60 px-2 py-1"><div className="text-slate-200 truncate">{a.titulo}</div><div className="text-slate-500">{a.inicio}{achou && <span className="text-emerald-300"> · → {cli}</span>}</div></div>; })}</div>
+                <div className="text-[11px] text-slate-500">Cada reunião é ligada ao cliente pelo nome no título. Padronize "Tema · Nome do cliente" para o match ser certeiro.</div>
+              </div>
+            )}
+          </div>
+        );
+      }
+      function DiagNps({ squad, getCreds }) {
+        const [st, setSt] = useState({ loading: "", data: null, erro: null, which: "" });
+        const testar = async (which) => {
+          setSt({ loading: which, data: null, erro: null, which });
+          try {
+            const creds = getCreds() || {};
+            const link = which === "interna" ? creds.linkInterna : creds.linkExterna;
+            if (!link) throw new Error(`Preencha o link da NPS ${which}.`);
+            const data = await FD.integrations.nps.inspect({ squad, link, which });
+            setSt({ loading: "", data, erro: null, which });
+          } catch (e) {
+            setSt({ loading: "", data: null, erro: e.message || String(e), which });
+          }
+        };
+        const d = st.data, p = d && d.parsed;
+        return (
+          <div className="mt-2.5 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => testar("externa")} disabled={!!st.loading} className="text-[12px] font-semibold rounded-lg px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 disabled:opacity-60">{st.loading === "externa" ? "Lendo…" : "🔍 Testar externa"}</button>
+              <button onClick={() => testar("interna")} disabled={!!st.loading} className="text-[12px] font-semibold rounded-lg px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 disabled:opacity-60">{st.loading === "interna" ? "Lendo…" : "Testar interna"}</button>
+            </div>
+            {st.erro && <div className="rounded-lg border border-red-800 bg-red-950/40 text-red-200 text-[12px] px-2.5 py-1.5">{st.erro}</div>}
+            {d && p && (
+              <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-2.5 text-[12px] space-y-2">
+                <div className="text-emerald-300 font-semibold">✓ Leu — {d.total} resposta(s) · NPS {st.which}</div>
+                <div><div className="text-slate-400 mb-1">Colunas <span className="text-blue-300">azul = nome</span> · <span className="text-emerald-300">verde = nota</span> · <span className="text-violet-300">roxo = comentário</span></div><div className="flex flex-wrap gap-1">{(d.headers || []).map((h, i) => { const isName = i === p.nameIdx; const isRate = p.ratingIdx.indexOf(i) >= 0; const isComent = (p.comentarioIdx || []).indexOf(i) >= 0; return <span key={i} className={`text-[11px] px-2 py-0.5 rounded-full border ${isName ? "bg-blue-500/15 text-blue-200 border-blue-700" : isRate ? "bg-emerald-500/15 text-emerald-200 border-emerald-700" : isComent ? "bg-violet-500/15 text-violet-200 border-violet-700" : "bg-slate-800 text-slate-400 border-slate-700"}`}>[{i}] {(h || "—").slice(0, 40)}</span>; })}</div></div>
+                <div><div className="text-slate-400 mb-1">Amostra (nome → nota 1–5)</div><div className="space-y-1">{p.linhas.slice(0, 8).map((l, i) => { const cli = FD.clientes.nomeCanonico(l.nome); return <div key={i} className="rounded bg-slate-800/60 px-2 py-1 flex items-center justify-between gap-2"><span className="text-slate-200 truncate">{l.nome}{cli !== l.nome.trim() && <span className="text-emerald-300"> → {cli}</span>}</span><span className="text-slate-300 font-bold shrink-0">{npsDisp(l.score)} <span className="text-slate-500 font-normal">(méd {l.mediaRaw}{p.escala === 5 ? "/5" : "/10"})</span></span></div>; })}{p.linhas.length === 0 && <div className="text-amber-400/80">Nenhuma nota detectada — confira o compartilhamento e as colunas.</div>}</div></div>
+                <div className="text-[11px] text-slate-500">Se alguma coluna ficou errada (ex.: a "cheat" virou nota), me diga o número [n] que eu corrijo.</div>
+              </div>
+            )}
+          </div>
+        );
+      }
+      function DiagControle({ squad, getCreds }) {
+        const [st, setSt] = useState({ loading: false, data: null, erro: null });
+        const testar = async () => {
+          setSt({ loading: true, data: null, erro: null });
+          try {
+            const link = (getCreds() || {}).link;
+            if (!link) throw new Error("Preencha o link da planilha de Controle.");
+            const data = await FD.integrations.controle.inspect(squad, link);
+            setSt({ loading: false, data, erro: null });
+          } catch (e) { setSt({ loading: false, data: null, erro: e.message || String(e) }); }
+        };
+        const d = st.data;
+        return (
+          <div className="mt-2.5 space-y-2">
+            <button onClick={testar} disabled={st.loading} className="text-[12px] font-semibold rounded-lg px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 disabled:opacity-60">{st.loading ? "Lendo…" : "🔍 Testar planilha"}</button>
+            {st.erro && <div className="rounded-lg border border-red-800 bg-red-950/40 text-red-200 text-[12px] px-2.5 py-1.5">{st.erro}</div>}
+            {d && (
+              <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-2.5 text-[12px] space-y-2">
+                <div className="text-emerald-300 font-semibold">✓ Leu a aba <b>{d.aba}</b> — {d.total} cliente(s)</div>
+                <div><div className="text-slate-400 mb-1">Colunas encontradas</div><div className="flex flex-wrap gap-1">{(d.headers || []).map((h, i) => <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">{(h || "—").slice(0, 28)}</span>)}</div></div>
+                <div><div className="text-slate-400 mb-1">Amostra (cliente → casou com)</div><div className="space-y-1">{d.linhas.slice(0, 8).map((l, i) => { const cli = FD.clientes.nomeCanonico(l.nome); return <div key={i} className="rounded bg-slate-800/60 px-2 py-1 flex items-center justify-between gap-2"><span className="text-slate-200 truncate">{l.nome}{cli !== l.nome.trim() && <span className="text-emerald-300"> → {cli}</span>}</span><span className="text-slate-400 shrink-0 text-[11px]">Linha Ed.: {l.linhaEditorial} · Google: {l.campanhaGoogle}</span></div>; })}{d.linhas.length === 0 && <div className="text-amber-400/80">Nenhum cliente detectado — confira o compartilhamento e a coluna "Clientes".</div>}</div></div>
+                <div className="text-[11px] text-slate-500">Os clientes precisam casar pelo nome com as pastas do ClickUp. Se algum não casar, me diga o nome que eu adiciono o apelido.</div>
+              </div>
+            )}
+          </div>
+        );
+      }
+      function DiagLtv({ squad, getCreds }) {
+        const [st, setSt] = useState({ loading: false, data: null, erro: null });
+        const testar = async () => {
+          setSt({ loading: true, data: null, erro: null });
+          try {
+            const link = (getCreds() || {}).link;
+            if (!link) throw new Error("Preencha o link da planilha de LTV/Saídas.");
+            const data = await FD.integrations.ltv.inspect(squad, link);
+            setSt({ loading: false, data, erro: null });
+          } catch (e) { setSt({ loading: false, data: null, erro: e.message || String(e) }); }
+        };
+        const d = st.data, R = d && d.resumo, C = d && d.colunas;
+        const rotulo = (i) => !C ? "" : i === C.iNome ? "nome" : i === C.iEntrada ? "entrada" : i === C.iSaida ? "saída/fim" : i === C.iSituacao ? "situação" : i === C.iMotivo ? "motivo" : i === C.iPorque ? "por que" : i === C.iMeses ? "meses ativo" : i === C.iSquad ? "squad" : i === C.iFimContrato ? "fim contrato" : "";
+        return (
+          <div className="mt-2.5 space-y-2">
+            <button onClick={testar} disabled={st.loading} className="text-[12px] font-semibold rounded-lg px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-100 disabled:opacity-60">{st.loading ? "Lendo…" : "🔍 Testar planilha"}</button>
+            {st.erro && <div className="rounded-lg border border-red-800 bg-red-950/40 text-red-200 text-[12px] px-2.5 py-1.5">{st.erro}</div>}
+            {d && R && (
+              <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-2.5 text-[12px] space-y-2">
+                <div className="text-emerald-300 font-semibold">✓ Leu a aba <b>{d.aba}</b> — {R.total} cliente(s) · {R.saidas} saíram · {R.ativos} ativos</div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-300"><span>LTV médio: <b className="text-emerald-300">{R.ltvMedio != null ? R.ltvMedio + " meses" : "—"}</b></span><span>LTV 2m+: <b className="text-emerald-300">{R.ltv2m != null ? R.ltv2m + " meses" : "—"}</b></span><span>Churn: <b className="text-rose-300">{R.churn}</b> ({R.churnRate}%)</span><span>Retidos 2m+: <b>{R.retidos2m}</b></span></div>
+                <div><div className="text-slate-400 mb-1">Colunas detectadas <span className="text-emerald-300">(verde = reconhecida)</span></div><div className="flex flex-wrap gap-1">{(d.headers || []).map((h, i) => { const rot = rotulo(i); return <span key={i} className={`text-[11px] px-2 py-0.5 rounded-full border ${rot ? "bg-emerald-500/15 text-emerald-200 border-emerald-700" : "bg-slate-800 text-slate-400 border-slate-700"}`}>[{i}] {(h || "—").slice(0, 24)}{rot ? ` · ${rot}` : ""}</span>; })}</div></div>
+                <div><div className="text-slate-400 mb-1">Amostra (cliente → tempo de casa · motivo se saiu)</div><div className="space-y-1">{d.clientes.slice(0, 8).map((c, i) => <div key={i} className="rounded bg-slate-800/60 px-2 py-1 flex items-center justify-between gap-2"><span className="text-slate-200 truncate">{c.nome}{c.saiu ? <span className="text-rose-300"> · saiu</span> : ""}</span><span className="text-slate-400 shrink-0 text-[11px]">{c.tenureMeses != null ? c.tenureMeses + "m" : "—"}{c.saiu && c.motivo ? " · " + c.motivo.slice(0, 30) : ""}</span></div>)}{d.clientes.length === 0 && <div className="text-amber-400/80">Nenhuma linha detectada — confira o compartilhamento e a coluna de clientes.</div>}</div></div>
+                <div className="text-[11px] text-slate-500">Lê a aba-mestre <b>Clientes_Ativos_e_Inativos</b> (ativos + inativos). Se entrada/saída/situação/meses ficaram sem rótulo verde, me diga o cabeçalho que eu ajusto.</div>
+              </div>
+            )}
+          </div>
+        );
+      }
+      function Integracoes({ squads, onSaved }) {
+        const fontesDef = FD.integrations.lista();
+        const [cfg, setCfg] = useState(() => FD.configStore.load());
+        const [salvo, setSalvo] = useState(false);
+        const setCampo = (squad, fonte, key, value) => { setCfg((prev) => ({ ...prev, [squad]: { ...prev[squad], [fonte]: { ...prev[squad][fonte], [key]: value } } })); setSalvo(false); };
+        const salvar = () => { FD.configStore.save(cfg); onSaved && onSaved(); setSalvo(true); };
+        const squadCount = (squad) => fontesDef.filter((f) => FD.integrations[f.key].conectado(squad)).length;
+        return (
+          <div className="space-y-4">
+            <div className={`${CARD} p-4`}><h1 className={`text-lg ${H}`}>Integrações</h1><p className="text-sm text-slate-400 mt-1">Vincule as credenciais/links das ferramentas. Salvo <b>só neste navegador</b> (localStorage). No <b>ClickUp</b>, cada <b>squad = um Space</b>. Use <b>Listar meus spaces</b> para achar o ID e <b>Testar conexão</b> para ver os clientes e demandas reais.</p></div>
+            <div className={`grid grid-cols-1 ${squads.length > 1 ? "lg:grid-cols-2" : ""} gap-4`}>
+              {squads.map((squad) => (
+                <div key={squad} className={`${CARD} overflow-hidden`}>
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800" style={{ backgroundColor: SQUADS[squad].cor + "1a" }}><SquadBadge squad={squad} /><span className="text-[12px] text-slate-400">{squadCount(squad)}/{fontesDef.length} configuradas</span></div>
+                  <div className="p-4 space-y-4">{fontesDef.map((f) => { const ok = FD.integrations[f.key].conectado(squad); return <div key={f.key} className="border border-slate-800 rounded-xl p-3"><div className="flex items-center justify-between mb-2"><div><div className="font-bold text-slate-200 text-sm">{f.nome}</div><div className="text-[11px] text-slate-500">{f.descricao}</div></div><span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${ok ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-800 text-slate-500"}`}>{ok ? "✓ configurado" : "não configurado"}</span></div><div className="space-y-2">{f.campos.map((campo) => <CampoIntegracao key={campo.key} campo={campo} valor={cfg[squad][f.key][campo.key] || ""} onChange={(v) => setCampo(squad, f.key, campo.key, v)} />)}</div>{f.key === "clickup" && <DiagClickUp squad={squad} getCreds={() => cfg[squad].clickup} onPickSpace={(id) => setCampo(squad, "clickup", "spaceId", id)} />}{f.key === "googleCalendar" && <DiagCalendar squad={squad} getCreds={() => cfg[squad].googleCalendar} />}{f.key === "nps" && <DiagNps squad={squad} getCreds={() => cfg[squad].nps} />}{f.key === "controle" && <DiagControle squad={squad} getCreds={() => cfg[squad].controle} />}{f.key === "ltv" && <DiagLtv squad={squad} getCreds={() => cfg[squad].ltv} />}</div>; })}</div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-3 sticky bottom-0 bg-slate-950/70 backdrop-blur py-3"><button onClick={salvar} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl px-4 py-2">Salvar credenciais</button>{salvo && <span className="text-sm text-emerald-400 font-medium">✓ salvo</span>}</div>
+          </div>
+        );
+      }
+
+      /* ---------------- APP ---------------- */
+      function App() {
+        const [sessao, setSessao] = useState(() => FD.auth.sessao());
+        const [todas, setTodas] = useState(null);
+        const [squad, setSquad] = useState("todos");
+        const [view, setView] = useState("resumo");
+        const [selId, setSelId] = useState(null);
+        const [backView, setBackView] = useState("clientes");
+        const [, setTick] = useState(0);
+        const [busca, setBusca] = useState("");
+        const [resp, setResp] = useState(null);
+        const [respTasks, setRespTasks] = useState(null);
+        const [respLoading, setRespLoading] = useState(false);
+        const [navDir, setNavDir] = useState(""); // "in" (abrir cliente) | "out" (voltar) | "" (neutro)
+
+        // Render progressivo: pinta a carteira do ClickUp assim que chega
+        // (1º setTodas via callback) e re-pinta com NPS/Agenda/Controle (2º setTodas).
+        useEffect(() => { FD.integrations.carregar(setTodas).then(setTodas).catch((err) => { console.error(err); setTodas([]); }); }, []);
+        // sobe ao topo ao trocar de view/cliente. Ao ABRIR um cliente (navDir "in"),
+        // o scroll é instantâneo p/ não competir com o slide de entrada (fd-push-in);
+        // nas trocas de aba mantém o suave. (respeita reduced-motion via 'auto')
+        useEffect(() => {
+          if (window.scrollY < 8) return;
+          const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          window.scrollTo({ top: 0, behavior: (reduce || navDir === "in") ? "auto" : "smooth" });
+        }, [view, selId]);
+
+        const diretoria = sessao && sessao.papel === "diretoria";
+        // visiveis = carteira do escopo (squad) SEM busca -> alimenta o DETALHE.
+        // escolas = visiveis + filtro de busca -> alimenta as LISTAS. Assim digitar
+        // na busca não derruba o cliente aberto no detalhe.
+        const visiveis = useMemo(() => {
+          if (!todas || !sessao) return [];
+          let base = todas.filter((e) => sessao.squads.includes(e.squad));
+          if (diretoria && squad !== "todos") base = base.filter((e) => e.squad === squad);
+          return base;
+        }, [todas, sessao, squad, diretoria]);
+        const escolas = useMemo(() => {
+          const q = norm(busca);
+          return q ? visiveis.filter((e) => norm(e.nome).indexOf(q) >= 0) : visiveis;
+        }, [visiveis, busca]);
+        // Escopo de squads da tela (respeita o filtro da diretoria) — usado por LTV/Out.
+        const escopoSquads = useMemo(() => {
+          if (!sessao) return [];
+          if (diretoria) return squad === "todos" ? ["azul", "laranja"] : [squad];
+          return sessao.squads;
+        }, [sessao, diretoria, squad]);
+        const escolasOut = useMemo(() => (todas && FD.integrations.clientesOut) ? FD.integrations.clientesOut(escopoSquads) : [], [todas, escopoSquads]);
+        const ltvInfo = useMemo(() => (todas && FD.integrations.ltvResumo) ? FD.integrations.ltvResumo(escopoSquads) : null, [todas, escopoSquads]);
+        const outVis = useMemo(() => { const q = norm(busca); return q ? escolasOut.filter((e) => norm(e.nome).indexOf(q) >= 0) : escolasOut; }, [escolasOut, busca]);
+
+        // Filtro por pessoa: busca SOB DEMANDA todas as tarefas do responsável
+        // (qualquer lista, filtrado por ID no ClickUp). Rápido e completo.
+        useEffect(() => {
+          if (!resp || !sessao || REP_ID[resp] == null) { setRespTasks(null); setRespLoading(false); return; }
+          let vivo = true;
+          setRespLoading(true); setRespTasks(null);
+          // Só busca nos squads em que a pessoa ATUA, dentro do escopo atual da tela.
+          // Ex.: Caio (nos dois) filtrado em Laranja -> só Laranja; João/Jon nunca puxam do Azul.
+          const escopo = diretoria ? (squad === "todos" ? ["azul", "laranja"] : [squad]) : (sessao.squads || []);
+          const alvos = squadsDoResp(resp).filter((sq) => escopo.indexOf(sq) >= 0);
+          FD.integrations.clickup.tarefasPorResponsavel(alvos, REP_ID[resp])
+            .then((t) => { if (vivo) { setRespTasks(t); setRespLoading(false); } })
+            .catch(() => { if (vivo) { setRespTasks([]); setRespLoading(false); } });
+          return () => { vivo = false; };
+        }, [resp, sessao, todas, squad, diretoria]);
+
+        const repsDisp = useMemo(() => {
+          const sqs = diretoria ? (squad === "todos" ? ["azul", "laranja"] : [squad]) : (sessao ? sessao.squads : []);
+          const out = [];
+          sqs.forEach((sq) => (REPRESENTANTES[sq] || []).forEach((r) => { if (out.indexOf(r.nome) < 0) out.push(r.nome); }));
+          return out;
+        }, [diretoria, squad, sessao]);
+        // limpa o responsável selecionado se ele sair da lista (ex.: trocou de squad)
+        useEffect(() => { if (resp && repsDisp.indexOf(resp) < 0) setResp(null); }, [repsDisp, resp]);
+        // glow inferior segue o squad: laranja no Laranja, azul no Azul, preto na diretoria/consolidado
+        useEffect(() => {
+          const sq = diretoria ? squad : (sessao && sessao.squad);
+          const cor = sq === "laranja" ? "#5a300c" : sq === "azul" ? "#1a3a78" : "rgba(0,0,0,.5)";
+          document.documentElement.style.setProperty("--fd-glow2", cor);
+        }, [diretoria, squad, sessao]);
+
+        const agenda = useMemo(
+          () => (todas && sessao && FD.integrations.agenda) ? FD.integrations.agenda(sessao.squads, 7) : [],
+          [todas, sessao]
+        );
+
+        const abrirCliente = (id) => { setNavDir("in"); setBackView(view); setSelId(id); setView("detalhe"); };
+        const resetUI = () => { setNavDir(""); setSelId(null); setBackView("clientes"); setBusca(""); setResp(null); setRespTasks(null); setRespLoading(false); };
+        const logout = () => { FD.auth.logout(); resetUI(); setSessao(null); setView("resumo"); setSquad("todos"); };
+
+        if (!sessao) return <Login onLogin={(s) => { resetUI(); setSessao(s); setSquad("todos"); setView("resumo"); }} />;
+        if (!todas) {
+          const Sk = ({ className = "" }) => <div className={`fd-skel rounded-2xl ${className}`} />;
+          return (
+            <div className="min-h-screen pb-12" aria-busy="true" aria-label="Carregando operação">
+              <div className="h-[57px] border-b border-slate-800 bg-slate-950/60" />
+              <div className="max-w-6xl mx-auto px-4 py-5 space-y-5">
+                <Sk className="h-28" />
+                <div className="grid grid-cols-3 gap-3"><Sk className="h-20" /><Sk className="h-20" /><Sk className="h-20" /></div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5"><Sk className="h-72" /><Sk className="h-72" /></div>
+                <Sk className="h-64" />
+              </div>
+            </div>
+          );
+        }
+
+        const showSquad = diretoria;
+        const label = diretoria ? (squad === "todos" ? "consolidado" : SQUADS[squad].nome) : sessao.nome;
+        const selecionada = visiveis.find((e) => e.id === selId) || escolasOut.find((e) => e.id === selId);
+
+        return (
+          <div className="min-h-screen pb-12">
+            <Header sessao={sessao} squad={squad} setSquad={setSquad} view={view} setView={(v) => { setNavDir(""); setView(v); }} onLogout={logout} busca={busca} setBusca={setBusca} resp={resp} setResp={(r) => { setResp(r); if (r) setView("demandas"); }} reps={repsDisp} />
+            <main className="max-w-6xl mx-auto px-4 py-5">
+            <div key={view + "·" + squad + (view === "detalhe" ? selId : "")} className={view === "detalhe" ? "fd-push-in" : navDir === "out" ? "fd-push-out" : "fd-fade"}>
+              {view === "resumo" && <Resumo escolas={escolas} label={label} showSquad={showSquad} abrirCliente={abrirCliente} setView={setView} agenda={agenda} />}
+              {view === "renovacoes" && <Renovacoes escolas={escolas} showSquad={showSquad} abrirCliente={abrirCliente} />}
+              {view === "reunioes" && <Reunioes escolas={escolas} showSquad={showSquad} abrirCliente={abrirCliente} />}
+              {view === "nps" && <NpsView escolas={escolas} showSquad={showSquad} abrirCliente={abrirCliente} />}
+              {view === "demandas" && <Demandas escolas={escolas} showSquad={showSquad} abrirCliente={abrirCliente} resp={resp} setResp={setResp} reps={repsDisp} respTasks={respTasks} respLoading={respLoading} />}
+              {view === "clientes" && <Clientes escolas={escolas} showSquad={showSquad} abrirCliente={abrirCliente} />}
+              {view === "out" && <ClientesOut escolasOut={outVis} ltv={ltvInfo} abrirCliente={abrirCliente} />}
+              {view === "integracoes" && <Integracoes squads={sessao.squads} onSaved={() => setTick((t) => t + 1)} />}
+              {view === "detalhe" && (selecionada
+                ? <ClienteDetail escola={selecionada} voltar={() => { setNavDir("out"); setView(backView); }} />
+                : <div className={`${CARD} p-6 text-center`}><p className="text-slate-300 text-sm">Cliente fora da carteira atual.</p><button onClick={() => { setSelId(null); setView("clientes"); }} className="mt-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl px-4 py-2">Voltar para clientes</button></div>)}
+            </div>
+            </main>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+
+    <script>
+      window.addEventListener("load", function () {
+        try {
+          if (!window.Babel) { fdErro("Babel não carregou (CDN bloqueado/sem internet?)."); return; }
+          var src = document.getElementById("app-src").textContent;
+          var out = Babel.transform(src, { presets: [["react", { runtime: "classic" }]], filename: "app.jsx" }).code;
+          new Function(out)();
+          clearTimeout(window.__fdTimer); // app renderizou: cancela o watchdog de erro
+        } catch (err) { console.error(err); fdErro((err && err.message ? err.message : String(err)) + (err && err.stack ? "\n\n" + err.stack.split("\n").slice(0, 4).join("\n") : "")); }
+      });
+    </script>
+  </body>
+</html>

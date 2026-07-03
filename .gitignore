@@ -1,0 +1,7 @@
+# Segredos do proxy local — NUNCA versionar (contém o token do ClickUp)
+proxy.local.json
+
+# macOS / Python
+.DS_Store
+__pycache__/
+*.pyc

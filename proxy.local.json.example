@@ -1,0 +1,11 @@
+{
+  "_comentario": "Copie este arquivo para 'proxy.local.json' e preencha o token + listId de cada squad. O proxy.local.json fica SÓ na sua máquina — não compartilhe (tem o seu token do ClickUp). Onde achar: ClickUp > Settings > Apps > API Token (pk_...). O listId é o ID da lista de demandas do squad (na URL da lista, ou Lista > ... > Copy ID).",
+  "azul": {
+    "token": "pk_COLE_SEU_TOKEN_AQUI",
+    "listId": "COLE_O_ID_DA_LISTA_AQUI"
+  },
+  "laranja": {
+    "token": "pk_COLE_SEU_TOKEN_AQUI",
+    "listId": "COLE_O_ID_DA_LISTA_AQUI"
+  }
+}
