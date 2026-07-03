@@ -1,2 +1,0 @@
-# A função /api/index.py usa só a biblioteca padrão do Python — sem dependências.
-# (arquivo presente só para o Vercel detectar o runtime Python com clareza)
