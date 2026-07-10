@@ -115,21 +115,22 @@
 
     <!-- Supabase JS (UMD) — armazenagem compartilhada cross-device; antes dos módulos FD -->
     <script defer src="https://unpkg.com/@supabase/supabase-js@2.110.2/dist/umd/supabase.js"></script>
-    <script defer src="src/lib/format.js?v=67"></script>
-    <script defer src="src/lib/clientes.js?v=67"></script>
-    <script defer src="src/lib/configStore.js?v=67"></script>
-    <script defer src="src/lib/auth.js?v=67"></script>
-    <script defer src="src/lib/supabase.js?v=67"></script>
-    <script defer src="src/lib/clienteStore.js?v=67"></script>
-    <script defer src="src/lib/snapshotStore.js?v=67"></script>
-    <script defer src="src/mocks/data.js?v=67"></script>
-    <script defer src="src/engine/criticidade.js?v=67"></script>
-    <script defer src="src/integrations/clickup.js?v=67"></script>
-    <script defer src="src/integrations/googleCalendar.js?v=67"></script>
-    <script defer src="src/integrations/nps.js?v=67"></script>
-    <script defer src="src/integrations/controle.js?v=67"></script>
-    <script defer src="src/integrations/ltv.js?v=67"></script>
-    <script defer src="src/integrations/registry.js?v=67"></script>
+    <script defer src="src/lib/format.js?v=68"></script>
+    <script defer src="src/lib/clientes.js?v=68"></script>
+    <script defer src="src/lib/configStore.js?v=68"></script>
+    <script defer src="src/lib/auth.js?v=68"></script>
+    <script defer src="src/lib/supabase.js?v=68"></script>
+    <script defer src="src/lib/clienteStore.js?v=68"></script>
+    <script defer src="src/lib/snapshotStore.js?v=68"></script>
+    <script defer src="src/lib/notasStore.js?v=68"></script>
+    <script defer src="src/mocks/data.js?v=68"></script>
+    <script defer src="src/engine/criticidade.js?v=68"></script>
+    <script defer src="src/integrations/clickup.js?v=68"></script>
+    <script defer src="src/integrations/googleCalendar.js?v=68"></script>
+    <script defer src="src/integrations/nps.js?v=68"></script>
+    <script defer src="src/integrations/controle.js?v=68"></script>
+    <script defer src="src/integrations/ltv.js?v=68"></script>
+    <script defer src="src/integrations/registry.js?v=68"></script>
 
     <script type="text/app-jsx" id="app-src">
       const { useState, useEffect, useMemo } = React;
@@ -1528,11 +1529,27 @@
         // (1º setTodas via callback) e re-pinta com NPS/Agenda/Controle (2º setTodas).
         const [snapEm, setSnapEm] = useState(null);
         const vivoRef = React.useRef(true);
+        // Re-avalia a carteira injetando a TENDÊNCIA do snapshot (piorando pesa na saúde).
+        // Puro (só depende de FD.*); devolve as escolas re-avaliadas, ou as mesmas se sem dados.
+        const comTendencia = (escolas) => {
+          if (!FD.snapshotStore || !FD.snapshotStore.tendenciasCarteira || !escolas || !escolas.length) return Promise.resolve(escolas);
+          return FD.snapshotStore.tendenciasCarteira(21).then((tend) => {
+            if (!tend || !tend.length) return escolas;
+            const tmap = {};
+            tend.forEach((t) => { tmap[t.canon] = t; });
+            return FD.engine.avaliarTodas(escolas, tmap);
+          }).catch(() => escolas);
+        };
         // Recarrega AO VIVO (fetch+normaliza), pinta e regrava o snapshot. Boot (se
         // snapshot ausente/velho) e botão "atualizar".
         const recarregar = React.useCallback(() => {
           return FD.integrations.carregar((p) => { if (vivoRef.current) setTodas(p); })
-            .then((esc) => { if (vivoRef.current) { setTodas(esc); setSnapEm(FD.NOW.toISOString()); } if (FD.snapshotStore) FD.snapshotStore.gravar(esc); })
+            .then((esc) => {
+              if (vivoRef.current) { setTodas(esc); setSnapEm(FD.NOW.toISOString()); }
+              if (FD.snapshotStore) FD.snapshotStore.gravar(esc);
+              return comTendencia(esc);
+            })
+            .then((esc2) => { if (esc2 && vivoRef.current) setTodas(esc2); })
             .catch((err) => { console.error(err); if (vivoRef.current) setTodas([]); });
         }, []);
         // BOOT read-model: lê o snapshot do Supabase -> render INSTANTÂNEO (re-avalia a
@@ -1546,6 +1563,7 @@
             if (snap && snap.escolas && snap.escolas.length) {
               try {
                 if (vivoRef.current) { setTodas(FD.engine.avaliarTodas(snap.escolas)); setSnapEm(snap.capturadoEm); }
+                comTendencia(snap.escolas).then((e2) => { if (e2 && vivoRef.current) setTodas(e2); });
                 if (FD.snapshotStore.staleMs(snap.capturadoEm) > 6 * 60 * 60 * 1000) recarregar();
               } catch (e) { recarregar(); }
             } else { recarregar(); }
