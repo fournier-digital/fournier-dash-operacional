@@ -12,9 +12,10 @@
   const LIMITE_SEM_REUNIAO = 15; // dias
   const LIMITE_REUNIAO_CRITICA = 20; // dias — gatilho crítico de churn (encurtado de 30 p/ apertar a cadência)
 
-  function avaliar(escola) {
+  function avaliar(escola, opts) {
     let score = 0;
     const motivos = [];
+    const trend = opts && opts.trend; // tendência do snapshot (piorando/melhorando), opcional
 
     // Tempo de contrato (usado em reunião, onboarding e chance de renovar)
     const diasContrato = lib.diasDesde(escola.inicioContrato);
@@ -30,6 +31,14 @@
       score += 3;
       if (diasSemReuniao >= LIMITE_REUNIAO_CRITICA) score += 2;
       motivos.push(`Sem reunião há ${diasSemReuniao} dias`);
+    }
+    // 1b. NENHUMA reunião registrada em cliente já rodando (>30d de contrato). Antes
+    // isso era ignorado (diasSemReuniao=0) e mascarava cliente abandonado. Sinal LEVE
+    // (+1) e explícito — a agenda casa por título, então pode ser lacuna de dado.
+    const semReuniaoRegistrada = !temReuniao && !naJanelaKickoff && diasContrato != null && diasContrato > 30;
+    if (semReuniaoRegistrada) {
+      score += 1;
+      motivos.push("Sem reunião registrada — verificar agenda");
     }
 
     // 2. Demandas atrasadas
@@ -88,6 +97,23 @@
       motivos.push(`${entFaltando.length} entregável(is) faltando`);
     }
 
+    // 6. Renovação logo ali + já há sinais de risco = janela crítica de churn.
+    // O motor antes ignorava a proximidade da renovação. Escala o risco existente
+    // (não penaliza um cliente saudável só porque a renovação se aproxima).
+    const diasRenovacao = escola.renovacaoEm != null ? lib.diasAte(escola.renovacaoEm) : null;
+    const renovacaoProxima = diasRenovacao != null && diasRenovacao >= 0 && diasRenovacao <= 45;
+    const renovacaoVencida = diasRenovacao != null && diasRenovacao < 0;
+    if (renovacaoProxima && score >= 3) {
+      score += 2;
+      motivos.push(`Renovação em ${diasRenovacao}d com saúde em risco`);
+    }
+
+    // 7. Tendência (histórico do Supabase): piorando nas últimas semanas.
+    if (trend && trend.piorando) {
+      score += 2;
+      motivos.push("Piorando nas últimas semanas");
+    }
+
     let nivel;
     if (score >= 8) nivel = "vermelho";        // muito crítico
     else if (score >= 6) nivel = "laranja";    // crítico
@@ -98,7 +124,11 @@
     const npsRuim =
       (escola.npsExterno != null && escola.npsExterno < 7) ||
       (escola.npsInterno != null && escola.npsInterno < 6);
-    const riscoChurn = nivel === "vermelho" || nivel === "laranja" || npsRuim || diasSemReuniao >= LIMITE_REUNIAO_CRITICA;
+    const riscoChurn =
+      nivel === "vermelho" || nivel === "laranja" || npsRuim ||
+      diasSemReuniao >= LIMITE_REUNIAO_CRITICA ||
+      (renovacaoProxima && score >= 3) ||
+      (trend && trend.piorando && score >= 3);
 
     // Chance de renovar — cada sinal entra UMA vez (sem dupla contagem via score).
     let chance = 62;
@@ -106,9 +136,12 @@
     if (escola.npsInterno != null) chance += (escola.npsInterno - 7) * 3; // NPS time (linear)
     if (npsDeltaExt != null && npsDeltaExt <= -2) chance -= 6; // queda de NPS
     if (semReuniao) chance -= diasSemReuniao >= LIMITE_REUNIAO_CRITICA ? 14 : 8; // cadência de reunião
+    if (semReuniaoRegistrada) chance -= 5; // nenhuma reunião registrada
     chance -= Math.min(atrasadas.length * 3, 12); // demandas atrasadas
-    if (escola.fase === "ativo") chance -= entFaltando.length * 2; // entregáveis faltando
+    if (escola.fase === "ativo") chance -= Math.min(entFaltando.length * 2, 10); // entregáveis faltando (com teto)
     if (escola.fase === "onboarding" && onbFeito < onbTotal) chance -= 6; // onboarding travado
+    if (renovacaoProxima && (score >= 3 || npsRuim)) chance -= 8; // renovação próxima com risco
+    if (trend && trend.piorando) chance -= 6; // tendência de piora
     chance = Math.max(5, Math.min(98, Math.round(chance)));
     const chanceNivel = chance >= 70 ? "verde" : chance >= 45 ? "amarelo" : "vermelho";
 
@@ -128,12 +161,20 @@
       chanceNivel,
       npsDeltaExt,
       npsPrevExt,
+      diasRenovacao,
+      renovacaoProxima,
+      renovacaoVencida,
+      semReuniaoRegistrada,
+      piorando: !!(trend && trend.piorando),
     };
   }
 
   // Enriquece cada escola com o campo .crit
-  FD.engine.avaliarTodas = function (escolas) {
-    return escolas.map((e) => ({ ...e, crit: avaliar(e) }));
+  FD.engine.avaliarTodas = function (escolas, trendMap) {
+    return escolas.map((e) => ({
+      ...e,
+      crit: avaliar(e, trendMap ? { trend: trendMap[lib.norm(e.nome)] } : null),
+    }));
   };
 
   FD.engine.avaliar = avaliar;
@@ -372,21 +413,17 @@
    * Pesa fortemente NPS escola, NPS time e queda de NPS.
    * -------------------------------------------------------------------- */
   FD.engine.prioritarios = function (escolas) {
-    const risco = (e) => {
-      const c = e.crit;
-      let r = c.score;
-      if (e.npsExterno != null) r += Math.max(0, 7 - e.npsExterno) * 2.5;
-      if (e.npsInterno != null) r += Math.max(0, 7 - e.npsInterno) * 1.5;
-      if (c.npsDeltaExt != null && c.npsDeltaExt < 0) r += -c.npsDeltaExt * 1.5;
-      return r;
-    };
-    // Pilar nº1: escola realmente insatisfeita (detrator de NPS) SEMPRE acima
-    // de caso puramente operacional, independentemente do score operacional.
-    const detrator = (e) => (e.npsExterno != null && e.npsExterno <= 6 ? 1 : 0);
+    // Ranqueia pela MESMA régua do resto do motor (crit.score / chanceRenovar) —
+    // sem inventar um "risco" paralelo. Pilar nº1: escola insatisfeita (detrator de
+    // NPS, mesmo corte <7 do score) SEMPRE acima do caso puramente operacional.
+    const detrator = (e) => (e.npsExterno != null && e.npsExterno < 7 ? 1 : 0);
     const npsOrd = (e) => (e.npsExterno == null ? 99 : e.npsExterno);
     return [...escolas]
-      .map((e) => ({ e, r: risco(e), d: detrator(e) }))
-      .sort((a, b) => b.d - a.d || b.r - a.r || npsOrd(a.e) - npsOrd(b.e))
-      .map((x) => x.e);
+      .sort((a, b) =>
+        detrator(b) - detrator(a) ||
+        b.crit.score - a.crit.score ||
+        a.crit.chanceRenovar - b.crit.chanceRenovar ||
+        npsOrd(a) - npsOrd(b)
+      );
   };
 })();
