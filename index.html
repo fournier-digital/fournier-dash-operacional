@@ -115,22 +115,22 @@
 
     <!-- Supabase JS (UMD) — armazenagem compartilhada cross-device; antes dos módulos FD -->
     <script defer src="https://unpkg.com/@supabase/supabase-js@2.110.2/dist/umd/supabase.js"></script>
-    <script defer src="src/lib/format.js?v=68"></script>
-    <script defer src="src/lib/clientes.js?v=68"></script>
-    <script defer src="src/lib/configStore.js?v=68"></script>
-    <script defer src="src/lib/auth.js?v=68"></script>
-    <script defer src="src/lib/supabase.js?v=68"></script>
-    <script defer src="src/lib/clienteStore.js?v=68"></script>
-    <script defer src="src/lib/snapshotStore.js?v=68"></script>
-    <script defer src="src/lib/notasStore.js?v=68"></script>
-    <script defer src="src/mocks/data.js?v=68"></script>
-    <script defer src="src/engine/criticidade.js?v=68"></script>
-    <script defer src="src/integrations/clickup.js?v=68"></script>
-    <script defer src="src/integrations/googleCalendar.js?v=68"></script>
-    <script defer src="src/integrations/nps.js?v=68"></script>
-    <script defer src="src/integrations/controle.js?v=68"></script>
-    <script defer src="src/integrations/ltv.js?v=68"></script>
-    <script defer src="src/integrations/registry.js?v=68"></script>
+    <script defer src="src/lib/format.js?v=69"></script>
+    <script defer src="src/lib/clientes.js?v=69"></script>
+    <script defer src="src/lib/configStore.js?v=69"></script>
+    <script defer src="src/lib/auth.js?v=69"></script>
+    <script defer src="src/lib/supabase.js?v=69"></script>
+    <script defer src="src/lib/clienteStore.js?v=69"></script>
+    <script defer src="src/lib/snapshotStore.js?v=69"></script>
+    <script defer src="src/lib/notasStore.js?v=69"></script>
+    <script defer src="src/mocks/data.js?v=69"></script>
+    <script defer src="src/engine/criticidade.js?v=69"></script>
+    <script defer src="src/integrations/clickup.js?v=69"></script>
+    <script defer src="src/integrations/googleCalendar.js?v=69"></script>
+    <script defer src="src/integrations/nps.js?v=69"></script>
+    <script defer src="src/integrations/controle.js?v=69"></script>
+    <script defer src="src/integrations/ltv.js?v=69"></script>
+    <script defer src="src/integrations/registry.js?v=69"></script>
 
     <script type="text/app-jsx" id="app-src">
       const { useState, useEffect, useMemo } = React;
@@ -312,6 +312,125 @@
         return arr.map((x) => (x == null ? null : ((x - mn) / (mx - mn)) * 10));
       };
       // ── Fase 3 · Evolução cronológica de UM cliente (lê cliente_snapshot por dia) ──
+      // ── Cockpit do cliente: o que falta + próximos passos + ata + ideias (Supabase) ──
+      function CockpitCliente({ e, autor }) {
+        const c = e.crit || {};
+        const [d, setD] = useState(null); // { notas, passos, atas }
+        const recarregar = React.useCallback(() => {
+          if (!FD.notasStore) { setD({ notas: [], passos: [], atas: [] }); return; }
+          FD.notasStore.listar(e.nome).then(setD);
+        }, [e.nome]);
+        useEffect(() => { recarregar(); }, [recarregar]);
+        const hoje = FD.NOW ? FD.NOW.toISOString().slice(0, 10) : "";
+
+        // "O que está faltando" — pendências acionáveis consolidadas num lugar só.
+        const falta = [];
+        if (c.atrasadas && c.atrasadas.length) falta.push(`${c.atrasadas.length} demanda(s) atrasada(s)`);
+        if (c.semReuniao) falta.push(`Reunião vencida (${c.diasSemReuniao}d)`);
+        if (c.semReuniaoRegistrada) falta.push("Agendar 1ª reunião");
+        if (c.entFaltando && c.entFaltando.length) falta.push(`${c.entFaltando.length} entregável(is)`);
+        if (e.fase === "onboarding" && c.onbFeito < c.onbTotal) falta.push(`Onboarding ${c.onbFeito}/${c.onbTotal}`);
+        if (e.npsExterno == null) falta.push("Coletar NPS");
+        if (e.renovacaoEm == null) falta.push("Data de renovação no ClickUp");
+        if (c.renovacaoProxima) falta.push(`Renovação em ${c.diasRenovacao}d`);
+
+        const addPasso = async () => {
+          const t = prompt("Próximo passo com este cliente:");
+          if (!t || !t.trim()) return;
+          const pz = prompt("Prazo AAAA-MM-DD (opcional):", "");
+          const prazo = pz && /^\d{4}-\d{2}-\d{2}$/.test(pz.trim()) ? pz.trim() : null;
+          await FD.notasStore.adicionar(e.nome, "passo", { texto: t.trim(), prazo, autor });
+          recarregar();
+        };
+        const addAta = async () => {
+          const t = prompt("Ata da reunião (tema + combinados):");
+          if (!t || !t.trim()) return;
+          const dt = prompt("Data da reunião AAAA-MM-DD:", hoje);
+          const ref = dt && /^\d{4}-\d{2}-\d{2}$/.test(dt.trim()) ? dt.trim() : null;
+          await FD.notasStore.adicionar(e.nome, "ata", { texto: t.trim(), ref_data: ref, autor });
+          recarregar();
+        };
+        const addNota = async () => {
+          const t = prompt("Ideia / observação sobre o cliente:");
+          if (!t || !t.trim()) return;
+          await FD.notasStore.adicionar(e.nome, "nota", { texto: t.trim(), autor });
+          recarregar();
+        };
+        const toggle = async (p) => { await FD.notasStore.atualizar(p.id, { feito: !p.feito }); recarregar(); };
+        const remover = async (id) => { if (!confirm("Remover este item?")) return; await FD.notasStore.remover(id); recarregar(); };
+
+        const passos = (d && d.passos) || [], atas = (d && d.atas) || [], notas = (d && d.notas) || [];
+        const btn = "text-[12px] font-semibold text-blue-400 hover:text-blue-300 active:scale-95 transition";
+        const del = "text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 text-xs shrink-0";
+        const rot = "text-[11px] uppercase tracking-wider font-semibold text-slate-400";
+
+        return (
+          <div className={`${CARD} p-4 space-y-4`}>
+            <div className="font-bold text-slate-100 text-sm flex items-center gap-2">🧭 Cockpit do cliente <span className="text-[11px] text-slate-500 font-medium">· o que falta · próximos passos · ata · ideias — salvos no Supabase</span></div>
+
+            {falta.length > 0 && (
+              <div>
+                <div className="text-[11px] uppercase tracking-wider font-semibold text-amber-300/80 mb-1.5">⚠ O que está faltando</div>
+                <div className="flex flex-wrap gap-1.5">{falta.map((f, i) => <span key={i} className="text-[12px] bg-amber-500/10 text-amber-200 rounded px-2 py-0.5">{f}</span>)}</div>
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5"><span className={rot}>→ Próximos passos</span><button onClick={addPasso} className={btn}>+ passo</button></div>
+              {passos.length === 0 ? <div className="text-[12px] text-slate-500">Nenhum passo definido — registre o próximo combinado.</div> :
+                <ul className="space-y-1">{passos.map((p) => (
+                  <li key={p.id} className="flex items-start gap-2 text-[13px] group">
+                    <button onClick={() => toggle(p)} className={`mt-0.5 w-4 h-4 rounded border shrink-0 grid place-items-center text-[10px] ${p.feito ? "bg-emerald-500/80 border-emerald-500 text-white" : "border-slate-600 hover:border-slate-400"}`}>{p.feito ? "✓" : ""}</button>
+                    <span className={`flex-1 ${p.feito ? "line-through text-slate-500" : "text-slate-200"}`}>{p.texto}{p.prazo && <span className={`ml-1.5 text-[11px] ${!p.feito && p.prazo < hoje ? "text-red-400 font-semibold" : "text-slate-500"}`}>· {dataCurta(p.prazo)}</span>}</span>
+                    <button onClick={() => remover(p.id)} className={del}>✕</button>
+                  </li>
+                ))}</ul>}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5"><span className={rot}>🗒️ Ata de reunião</span><button onClick={addAta} className={btn}>+ ata</button></div>
+              {atas.length === 0 ? <div className="text-[12px] text-slate-500">Sem atas — registre tema e combinados após a reunião.</div> :
+                <ul className="space-y-2">{atas.map((a) => (
+                  <li key={a.id} className="text-[13px] group flex items-start gap-2">
+                    <div className="flex-1 min-w-0"><span className="text-slate-400 text-[11px] font-semibold">{a.ref_data ? dataCurta(a.ref_data) : "sem data"}{a.autor ? ` · ${a.autor}` : ""}</span><div className="text-slate-200 whitespace-pre-wrap">{a.texto}</div></div>
+                    <button onClick={() => remover(a.id)} className={del}>✕</button>
+                  </li>
+                ))}</ul>}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5"><span className={rot}>💡 Ideias</span><button onClick={addNota} className={btn}>+ ideia</button></div>
+              {notas.length === 0 ? <div className="text-[12px] text-slate-500">Sem anotações.</div> :
+                <ul className="space-y-1">{notas.map((n) => (
+                  <li key={n.id} className="text-[13px] group flex items-start gap-2">
+                    <span className="text-blue-400 mt-0.5">•</span><span className="flex-1 text-slate-200 whitespace-pre-wrap">{n.texto}{n.autor && <span className="text-slate-500 text-[11px]"> · {n.autor}</span>}</span>
+                    <button onClick={() => remover(n.id)} className={del}>✕</button>
+                  </li>
+                ))}</ul>}
+            </div>
+          </div>
+        );
+      }
+
+      // Histórico real de reuniões do cliente (Google Calendar) — passadas + próximas.
+      function ReunioesCliente({ e }) {
+        const r = e.reunioes;
+        if (!r || (!(r.passadas || []).length && !(r.futuras || []).length)) return null;
+        const linha = (m, futura) => (
+          <li key={m.iso} className="flex items-center gap-2 text-[13px]">
+            <span className={`text-[11px] font-semibold shrink-0 w-14 ${futura ? "text-blue-300" : "text-slate-400"}`}>{dataCurta(m.iso)}</span>
+            <span className="text-slate-300 truncate">{m.titulo || "(sem título)"}</span>
+          </li>
+        );
+        return (
+          <div className={`${CARD} p-4`}>
+            <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-2">🗓️ Reuniões <span className="text-[11px] text-slate-500 font-medium">· Google Calendar</span></div>
+            {(r.futuras || []).length > 0 && <div className="mb-2"><div className="text-[11px] uppercase tracking-wider font-semibold text-blue-300/80 mb-1">Próximas</div><ul className="space-y-1">{r.futuras.map((m) => linha(m, true))}</ul></div>}
+            {(r.passadas || []).length > 0 && <div><div className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-1">Anteriores</div><ul className="space-y-1">{r.passadas.map((m) => linha(m, false))}</ul></div>}
+          </div>
+        );
+      }
+
       function EvolucaoCliente({ nome }) {
         const [hist, setHist] = useState(null);
         useEffect(() => {
@@ -323,7 +442,7 @@
         if (hist == null) return <div className={`${CARD} p-4 text-sm text-slate-400`}>Carregando evolução…</div>;
         if (hist.length < 2) return (
           <div className={`${CARD} p-4`}>
-            <div className={H}>📈 Evolução</div>
+            <div className={H}>📊 Saúde ao longo do tempo</div>
             <p className="text-[13px] text-slate-400 mt-1">Ainda coletando histórico — {hist.length} {hist.length === 1 ? "captura" : "capturas"}. A linha do tempo aparece com 2+ dias de dados.</p>
           </div>
         );
@@ -349,7 +468,7 @@
         return (
           <div className={CARD}>
             <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-              <span className={H}>📈 Evolução</span>
+              <span className={H}>📊 Saúde ao longo do tempo</span>
               <span className="text-[11px] text-slate-500">{hist.length} capturas · {FD.lib.dataCurta(hist[0].dia)} → {FD.lib.dataCurta(hist[hist.length - 1].dia)}</span>
             </div>
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1078,7 +1197,7 @@
           </div>
         );
       }
-      function ClienteDetail({ escola, voltar }) {
+      function ClienteDetail({ escola, voltar, sessao }) {
         const e = escola, c = e.crit;
         const ehSolto = (d) => d.lista && /agente|criativo|solicita/i.test(d.lista);
         const rotuloLista = (l) => (/criativo|solicita/i.test(l || "") ? "Criativos" : "Agente");
@@ -1099,7 +1218,7 @@
           <div className="space-y-4">
             <button onClick={voltar} className="text-sm text-slate-400 hover:text-slate-200">← voltar</button>
             <div className={`${CARD} p-5`}>
-              <div className="flex items-center gap-3">{e.out ? <span className="inline-block w-3.5 h-3.5 rounded-full bg-rose-500 shrink-0" title="Cliente encerrado" /> : <Semaforo nivel={c.nivel} size={14} />}<div><h1 className="text-xl font-extrabold text-slate-100 tracking-tight">{e.nome}</h1><div className="flex items-center gap-2 mt-1.5 flex-wrap">{e.squad && <SquadBadge squad={e.squad} />}{e.out ? <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-rose-500/20 text-rose-300">Cliente encerrado</span> : <React.Fragment><span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${NIVEL[c.nivel].chip}`}>{NIVEL[c.nivel].label}</span>{c.riscoChurn && <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-red-500/20 text-red-300">⚠ risco de churn</span>}{e.fase === "onboarding" && <span className="text-[11px] bg-indigo-500/15 text-indigo-300 rounded-full px-2 py-0.5 font-semibold">em onboarding</span>}</React.Fragment>}{temExcecao(e) && <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-amber-500/15 text-amber-300">⚠ fora do padrão</span>}</div></div></div>
+              <div className="flex items-center gap-3">{e.out ? <span className="inline-block w-3.5 h-3.5 rounded-full bg-rose-500 shrink-0" title="Cliente encerrado" /> : <Semaforo nivel={c.nivel} size={14} />}<div><h1 className="text-xl font-extrabold text-slate-100 tracking-tight">{e.nome}</h1><div className="flex items-center gap-2 mt-1.5 flex-wrap">{e.squad && <SquadBadge squad={e.squad} />}{e.out ? <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-rose-500/20 text-rose-300">Cliente encerrado</span> : <React.Fragment><span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${NIVEL[c.nivel].chip}`}>{NIVEL[c.nivel].label}</span>{c.riscoChurn && <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-red-500/20 text-red-300">⚠ risco de churn</span>}{c.piorando && <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-orange-500/20 text-orange-300">📉 piorando</span>}{e.fase === "onboarding" && <span className="text-[11px] bg-indigo-500/15 text-indigo-300 rounded-full px-2 py-0.5 font-semibold">em onboarding</span>}</React.Fragment>}{temExcecao(e) && <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-amber-500/15 text-amber-300">⚠ fora do padrão</span>}</div></div></div>
               {c.motivos.length > 0 && <div className={`mt-3 rounded-xl ${NIVEL[c.nivel].chip} px-3 py-2`}><div className="text-[11px] uppercase tracking-wider font-semibold opacity-80 mb-1">O que fazer / por que está {NIVEL[c.nivel].label.toLowerCase()}</div><div className="flex flex-wrap gap-1.5">{c.motivos.map((m, i) => <span key={i} className="text-[12px] bg-slate-900/50 rounded px-2 py-0.5">{m}</span>)}</div></div>}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 <Tile label="NPS escola" value={e.npsExterno == null ? "—" : npsDisp(e.npsExterno)} sub={e.npsExterno3m != null ? `3 meses: ${npsDisp(e.npsExterno3m)} /5` : "este mês"} tone={e.npsExterno != null && e.npsExterno < 7 ? "red" : "green"} />
@@ -1110,6 +1229,7 @@
                 <Tile label="Tempo ativo" value={mesesAtivoTxt(e)} sub={`desde ${dataCurta(e.inicioContrato)}`} tone="slate" />
               </div>
             </div>
+            {!e.out && <CockpitCliente e={e} autor={sessao ? sessao.nome : null} />}
             <div className={`${CARD} p-4`}>
               <div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-3">🔗 Materiais do cliente <span className="text-[11px] text-slate-500 font-medium">· planilha comercial e dashboard externo · salvos neste navegador</span></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1143,7 +1263,7 @@
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className={`${CARD} p-4`}>
-                <div className="flex items-center justify-between mb-3"><div className="font-bold text-slate-100 text-sm flex items-center gap-2">📈 Evolução de NPS</div><span className="text-[11px] text-slate-500">atualizado {e.npsAtualizadoEm ? relativo(e.npsAtualizadoEm) : "—"}</span></div>
+                <div className="flex items-center justify-between mb-3"><div className="font-bold text-slate-100 text-sm flex items-center gap-2">📈 NPS mês a mês</div><span className="text-[11px] text-slate-500">{e.npsMesAtual ? e.npsMesAtual + " · " : ""}atualizado {e.npsAtualizadoEm ? relativo(e.npsAtualizadoEm) : "—"}</span></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><div className="flex items-center justify-between text-[12px] mb-1"><span className="text-emerald-300 font-semibold">Externo · escola</span><span className="text-slate-400">{trend(histExt)}</span></div><Sparkline serie={histExt} color="#34d399" /></div>
                   <div><div className="flex items-center justify-between text-[12px] mb-1"><span className="text-blue-300 font-semibold">Interno · time</span><span className="text-slate-400">{trend(histInt)}</span></div><Sparkline serie={histInt} color="#60a5fa" /></div>
@@ -1152,6 +1272,7 @@
               </div>
               <div className={`${CARD} p-4`}><div className="font-bold text-slate-100 text-sm flex items-center gap-2 mb-2">🗓️ Pauta sugerida para a próxima reunião</div><ul className="space-y-1.5">{pauta.map((p, i) => <li key={i} className="text-sm text-slate-300 flex items-start gap-2"><span className="text-blue-400">•</span>{p}</li>)}</ul></div>
             </div>
+            <ReunioesCliente e={e} />
             {e.npsSetores && e.npsSetores.length > 0 && (() => {
               const fracos = e.npsSetores.filter((s) => s.media != null && s.media < 7);
               return (
@@ -1692,7 +1813,7 @@
               {view === "out" && <ClientesOut escolasOut={outVis} ltv={ltvInfo} abrirCliente={abrirCliente} />}
               {view === "integracoes" && <Integracoes squads={sessao.squads} onSaved={() => setTick((t) => t + 1)} />}
               {view === "detalhe" && (selecionada
-                ? <ClienteDetailMemo escola={selecionada} voltar={voltar} />
+                ? <ClienteDetailMemo escola={selecionada} voltar={voltar} sessao={sessao} />
                 : <div className={`${CARD} p-6 text-center`}><p className="text-slate-300 text-sm">Cliente fora da carteira atual.</p><button onClick={() => { setSelId(null); setView("clientes"); }} className="mt-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl px-4 py-2">Voltar para clientes</button></div>)}
             </div>
             </main>

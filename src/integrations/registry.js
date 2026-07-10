@@ -306,19 +306,25 @@
       const ms = FD.clientes.melhorMatchTodos(ev.titulo || "", alvos, 0.6);
       for (const m of ms) {
         if (!buckets.has(m.e.id)) buckets.set(m.e.id, []);
-        buckets.get(m.e.id).push(ev.inicio);
+        buckets.get(m.e.id).push({ iso: ev.inicio, titulo: ev.titulo || "" });
       }
     }
 
     const agora = FD.NOW.getTime();
     for (const alvo of alvos) {
       const datas = (buckets.get(alvo.e.id) || [])
-        .map((iso) => ({ iso, t: new Date(iso).getTime() }))
+        .map((x) => ({ iso: x.iso, titulo: x.titulo, t: new Date(x.iso).getTime() }))
         .filter((x) => !isNaN(x.t));
       const passadas = datas.filter((x) => x.t <= agora).sort((a, b) => b.t - a.t);
       const futuras = datas.filter((x) => x.t > agora).sort((a, b) => a.t - b.t);
       if (passadas.length) alvo.e.ultimaReuniao = passadas[0].iso;
       if (futuras.length) alvo.e.proximaReuniao = futuras[0].iso;
+      // Histórico completo (antes só guardava última+próxima) — alimenta o bloco
+      // de reuniões no detalhe do cliente. Capado p/ não inchar o snapshot.
+      alvo.e.reunioes = {
+        passadas: passadas.slice(0, 8).map((x) => ({ iso: x.iso, titulo: x.titulo })),
+        futuras: futuras.slice(0, 5).map((x) => ({ iso: x.iso, titulo: x.titulo })),
+      };
     }
   }
 
