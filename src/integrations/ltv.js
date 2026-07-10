@@ -57,7 +57,8 @@
   const normSquad = (v) => { const n = norm(v); if (/laranja|orange/.test(n)) return "laranja"; if (/azul|blue/.test(n)) return "azul"; return null; };
 
   async function lerAba(link, aba) {
-    const params = [`url=${encodeURIComponent(link)}`];
+    const params = ["src=ltv"]; // sem url -> o servidor usa o ltv_link do Supabase
+    if (link) params.push(`url=${encodeURIComponent(link)}`);
     if (aba) params.push(`sheet=${encodeURIComponent(aba)}`);
     const resp = await fetch(`/api/sheet/azul?${params.join("&")}`); // o segmento do squad é só placeholder (usamos ?url=)
     let data = null; try { data = await resp.json(); } catch (e) { data = null; }
@@ -169,7 +170,7 @@
 
     // Global: uma leitura (a planilha não separa saídas por squad).
     async fetchGlobal(link) {
-      if (!link) return null;
+      if (!link && !(FD.integrations.serverTem("azul", "ltv") || FD.integrations.serverTem("laranja", "ltv"))) return null;
       try {
         const res = await lerMestre(link);
         if (!res) return null;

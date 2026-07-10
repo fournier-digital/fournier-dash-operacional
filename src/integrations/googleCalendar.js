@@ -13,12 +13,11 @@
   const FD = (window.FD = window.FD || {});
 
   async function chamarProxy(acao, { apiKey, calendarId, squad }) {
-    if (!apiKey) throw new Error("Preencha a API Key do Google.");
-    if (!calendarId) throw new Error("Preencha o Calendar ID.");
-    const url = `/api/gcal/${encodeURIComponent(squad)}/${acao}?calendarId=${encodeURIComponent(calendarId)}`;
+    // apiKey/calendarId podem vir vazios: o servidor injeta os do Supabase.
+    const url = `/api/gcal/${encodeURIComponent(squad)}/${acao}` + (calendarId ? `?calendarId=${encodeURIComponent(calendarId)}` : "");
     let resp;
     try {
-      resp = await fetch(url, { headers: { "X-GC-Key": apiKey } });
+      resp = await fetch(url, { headers: apiKey ? { "X-GC-Key": apiKey } : {} });
     } catch (e) {
       throw new Error("Não consegui falar com o proxy local. O servidor está rodando? (python3 server.py)");
     }
@@ -41,7 +40,7 @@
     ],
     conectado(squad) {
       const c = FD.config?.[squad]?.googleCalendar;
-      return !!(c && c.calendarId && c.apiKey);
+      return !!(c && c.calendarId && c.apiKey) || FD.integrations.serverTem(squad, "googleCalendar");
     },
     async inspect(creds) {
       return chamarProxy("inspect", creds);

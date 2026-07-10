@@ -110,6 +110,61 @@ def load_config():
     return data
 
 
+# ---------------------------------------------------------------------------
+# CONFIG no SUPABASE (cross-device). Lida SÓ pelo servidor com a service_role
+# (env SUPABASE_URL/SUPABASE_SERVICE_ROLE ou o bloco 'supabase' do proxy.local.json).
+# O navegador NUNCA recebe os segredos — o proxy injeta token/links nas chamadas.
+# ---------------------------------------------------------------------------
+_SB_CFG_CACHE = {}
+_SB_CFG_LOCK = threading.Lock()
+
+
+def _sb_creds():
+    sb = (load_config().get("supabase") or {})
+    url = (os.environ.get("SUPABASE_URL") or sb.get("url") or "").strip().rstrip("/")
+    key = (os.environ.get("SUPABASE_SERVICE_ROLE") or sb.get("serviceRole") or "").strip()
+    return url, key
+
+
+def _sb_config(squad):
+    """Config do squad no Supabase ({} se não houver). Cache curto (30s)."""
+    url, key = _sb_creds()
+    if not url or not key:
+        return {}
+    now = time.time()
+    with _SB_CFG_LOCK:
+        v = _SB_CFG_CACHE.get(squad)
+        if v and v[0] > now:
+            return v[1]
+    try:
+        u = "%s/rest/v1/config?squad=eq.%s&select=*" % (url, urlparse.quote(str(squad)))
+        req = urlrequest.Request(u, headers={"apikey": key, "Authorization": "Bearer " + key})
+        with urlrequest.urlopen(req, timeout=10) as r:
+            rows = json.loads(r.read().decode("utf-8"))
+        cfg = rows[0] if rows else {}
+    except Exception as e:
+        print("[supabase] config %s falhou: %s" % (squad, e))
+        cfg = {}
+    with _SB_CFG_LOCK:
+        _SB_CFG_CACHE[squad] = (now + 30, cfg)
+    return cfg
+
+
+def _config_status():
+    """Bool por squad/fonte (NÃO-secreto) p/ o front saber o que já está configurado."""
+    out = {}
+    for sq in ("azul", "laranja"):
+        c = _sb_config(sq)
+        out[sq] = {
+            "clickup": bool(c.get("clickup_token") and c.get("clickup_space_id")),
+            "googleCalendar": bool(c.get("gcal_api_key") and c.get("gcal_calendar_id")),
+            "nps": bool(c.get("nps_link_interna") or c.get("nps_link_externa")),
+            "controle": bool(c.get("controle_link")),
+            "ltv": bool(c.get("ltv_link")),
+        }
+    return out
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
@@ -173,6 +228,8 @@ class Handler(SimpleHTTPRequestHandler):
                 return self.handle_nps()
             if self.path.startswith("/api/sheet/"):
                 return self.handle_sheet()
+            if self.path.startswith("/api/config"):
+                return self._send_json(200, _config_status())
             return self._send_json(404, {"error": "rota /api desconhecida"})
         return super().do_GET()  # arquivos estáticos
 
@@ -183,7 +240,10 @@ class Handler(SimpleHTTPRequestHandler):
         squad = parts[2] if len(parts) > 2 else ""
         qs = urlparse.parse_qs(parsed.query)
         cfg = (load_config().get(squad, {}) or {}).get("controle", {}) or {}
-        link = (qs.get("url", [None])[0]) or cfg.get("link")
+        src = (qs.get("src", [None])[0])  # 'controle' | 'ltv' -> escolhe o link certo no Supabase
+        sbc = _sb_config(squad)
+        sb_link = sbc.get(src + "_link") if src in ("controle", "ltv") else None
+        link = (qs.get("url", [None])[0]) or cfg.get("link") or sb_link
         sheet = qs.get("sheet", [None])[0]  # aba por NOME (ex.: "Squad Laranja")
         if not link:
             return self._send_json(400, {"error": "sem link da planilha de controle"})
@@ -213,9 +273,10 @@ class Handler(SimpleHTTPRequestHandler):
         # Token: 1) proxy.local.json (recomendado, fora do navegador)
         #        2) variável de ambiente CLICKUP_TOKEN
         #        3) header X-CU-Token enviado pelo app (fallback p/ funcionar já)
-        token = cfg.get("token") or os.environ.get("CLICKUP_TOKEN") or self.headers.get("X-CU-Token")
-        # spaceId: query tem prioridade; senão o do proxy.local.json
-        space_id = (qs.get("spaceId", [None])[0]) or cfg.get("spaceId")
+        sbc = _sb_config(squad)
+        token = cfg.get("token") or os.environ.get("CLICKUP_TOKEN") or self.headers.get("X-CU-Token") or sbc.get("clickup_token")
+        # spaceId: query tem prioridade; senão proxy.local.json; senão Supabase
+        space_id = (qs.get("spaceId", [None])[0]) or cfg.get("spaceId") or sbc.get("clickup_space_id")
 
         if not token:
             return self._send_json(401, {
@@ -282,8 +343,9 @@ class Handler(SimpleHTTPRequestHandler):
         squad, acao = parts[2], parts[3]
         cfg = (load_config().get(squad, {}) or {}).get("googleCalendar", {}) or {}
         qs = urlparse.parse_qs(parsed.query)
-        api_key = cfg.get("apiKey") or os.environ.get("GCAL_KEY") or self.headers.get("X-GC-Key")
-        calendar_id = (qs.get("calendarId", [None])[0]) or cfg.get("calendarId")
+        sbc = _sb_config(squad)
+        api_key = cfg.get("apiKey") or os.environ.get("GCAL_KEY") or self.headers.get("X-GC-Key") or sbc.get("gcal_api_key")
+        calendar_id = (qs.get("calendarId", [None])[0]) or cfg.get("calendarId") or sbc.get("gcal_calendar_id")
         if not api_key:
             return self._send_json(401, {"error": "sem API key da Agenda", "dica": "preencha a API Key do Google na aba Integrações"})
         if not calendar_id:
@@ -368,7 +430,9 @@ class Handler(SimpleHTTPRequestHandler):
         qs = urlparse.parse_qs(parsed.query)
         cfg = (load_config().get(squad, {}) or {}).get("nps", {}) or {}
         chave = "linkInterna" if acao == "interna" else "linkExterna"
-        link = (qs.get("url", [None])[0]) or cfg.get(chave)
+        sbc = _sb_config(squad)
+        sb_link = sbc.get("nps_link_interna") if acao == "interna" else sbc.get("nps_link_externa")
+        link = (qs.get("url", [None])[0]) or cfg.get(chave) or sb_link
         sheet = qs.get("sheet", [None])[0]  # aba por NOME (ex.: "Julho de 2027"); None = aba padrão/gid
         if not link:
             return self._send_json(400, {"error": "sem link da planilha", "dica": "preencha o link da NPS na aba Integrações"})

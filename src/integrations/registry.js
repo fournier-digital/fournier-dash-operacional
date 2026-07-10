@@ -11,6 +11,15 @@
   const FONTES = ["clickup", "googleCalendar", "nps", "controle", "ltv"];
   const SQUADS = ["azul", "laranja"];
 
+  // Config que vive no SERVIDOR (Supabase) — o front recebe só BOOLEANS por
+  // squad/fonte (nunca os segredos). Usado por conectado() p/ um dispositivo novo
+  // já vir configurado, sem nada no localStorage.
+  FD.integrations._serverCfg = {};
+  FD.integrations.serverTem = function (squad, fonte) {
+    const s = FD.integrations._serverCfg;
+    return !!(s && s[squad] && s[squad][fonte]);
+  };
+
   FD.integrations.lista = function () {
     return FONTES.map((key) => FD.integrations[key]).map((m, i) => ({ key: FONTES[i], ...m }));
   };
@@ -29,6 +38,12 @@
     // squad conectado mostra os clientes REAIS; squad não-configurado fica
     // vazio (nunca escolas genéricas). O mock só aparece se NADA estiver
     // conectado (modo demonstração inicial).
+    // Status (não-secreto) da config central -> conectado() enxerga o Supabase
+    // mesmo sem localStorage (dispositivo novo já vem configurado).
+    try {
+      const rc = await fetch("/api/config");
+      if (rc.ok) FD.integrations._serverCfg = await rc.json();
+    } catch (e) { /* sem status -> segue no localStorage */ }
     const algumConectado = SQUADS.some((sq) => FD.integrations.clickup.conectado(sq));
     const escolas = [];
 
@@ -44,8 +59,9 @@
     // LTV é GLOBAL: a planilha-mestre (ativos + inativos) não separa saídas por
     // squad, então lemos UMA vez (usando o link de qualquer squad configurado).
     const ltvLink = FD.config && ((FD.config.azul && FD.config.azul.ltv && FD.config.azul.ltv.link) || (FD.config.laranja && FD.config.laranja.ltv && FD.config.laranja.ltv.link));
-    const pLtvG = (ltvLink && FD.integrations.ltv && FD.integrations.ltv.fetchGlobal)
-      ? Promise.resolve().then(() => FD.integrations.ltv.fetchGlobal(ltvLink)).catch(() => null)
+    const ltvServer = FD.integrations.serverTem("azul", "ltv") || FD.integrations.serverTem("laranja", "ltv");
+    const pLtvG = ((ltvLink || ltvServer) && FD.integrations.ltv && FD.integrations.ltv.fetchGlobal)
+      ? Promise.resolve().then(() => FD.integrations.ltv.fetchGlobal(ltvLink || "")).catch(() => null)
       : Promise.resolve(null);
 
     // 1) BASE (pinta primeiro): monta a carteira assim que o ClickUp responde.

@@ -208,7 +208,7 @@
     ],
     conectado(squad) {
       const c = FD.config?.[squad]?.nps;
-      return !!(c && (c.linkInterna || c.linkExterna));
+      return !!(c && (c.linkInterna || c.linkExterna)) || FD.integrations.serverTem(squad, "nps");
     },
     parsearNotas, // usado pelo diagnóstico
 
@@ -223,7 +223,7 @@
       const c = FD.config[squad].nps;
       const out = { source: "nps", externa: null, interna: null };
       const carregar = async (which, link) => {
-        if (!link) return null;
+        if (!link && !FD.integrations.serverTem(squad, "nps")) return null; // link vem do Supabase no servidor
         try {
           const meses = await lerMeses(squad, which, link, 4); // abas de mês ("Julho de 2027")
           if (meses.length) return { formato: meses[meses.length - 1].formato, escala: meses[meses.length - 1].escala, meses };

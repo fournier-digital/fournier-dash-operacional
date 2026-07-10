@@ -55,12 +55,12 @@
   }
 
   async function chamarProxy(acao, { token, squad }, query) {
-    if (!token) throw new Error("Preencha o API Token do ClickUp.");
+    // Token pode vir vazio: o servidor injeta o do Supabase (config central).
     const qs = new URLSearchParams(query || {}).toString();
     const url = `/api/clickup/${encodeURIComponent(squad)}/${acao}` + (qs ? `?${qs}` : "");
     let resp;
     try {
-      resp = await fetch(url, { headers: { "X-CU-Token": token } });
+      resp = await fetch(url, { headers: token ? { "X-CU-Token": token } : {} });
     } catch (e) {
       throw new Error("Não consegui falar com o proxy local. O servidor está rodando? (python3 server.py)");
     }
@@ -216,7 +216,7 @@
     ],
     conectado(squad) {
       const c = FD.config?.[squad]?.clickup;
-      return !!(c && c.token && c.spaceId);
+      return !!(c && c.token && c.spaceId) || FD.integrations.serverTem(squad, "clickup");
     },
 
     async listarSpaces(creds) {

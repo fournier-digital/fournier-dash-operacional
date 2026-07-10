@@ -48,7 +48,7 @@
   const cel = FD.lib.cel; // (era cópia local; agora compartilhada em format.js)
 
   async function lerAba(squad, link, aba) {
-    const params = [];
+    const params = ["src=controle"]; // sem url -> o servidor usa o controle_link do Supabase
     if (link) params.push(`url=${encodeURIComponent(link)}`);
     if (aba) params.push(`sheet=${encodeURIComponent(aba)}`);
     const resp = await fetch(`/api/sheet/${encodeURIComponent(squad)}?${params.join("&")}`);
@@ -98,7 +98,7 @@
     nome: "Controle / Onboarding",
     descricao: "Onboarding, entregáveis e Linha Editorial por cliente (aba do squad)",
     campos: [{ key: "link", label: "Link da planilha de Controle/Onboarding", placeholder: "https://docs.google.com/spreadsheets/..." }],
-    conectado(squad) { const c = FD.config?.[squad]?.controle; return !!(c && c.link); },
+    conectado(squad) { const c = FD.config?.[squad]?.controle; return !!(c && c.link) || FD.integrations.serverTem(squad, "controle"); },
     parseLinhas,
 
     // Diagnóstico p/ a aba Integrações ("Testar"): qual aba leu + amostra.

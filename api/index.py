@@ -66,6 +66,55 @@ def _lista_relevante(nome):
     return ("demanda" in n) or ("onboarding" in n) or ("criativo" in n) or ("entregav" in n)
 
 
+# ---- CONFIG no Supabase (cross-device; lida SÓ pelo servidor com a service_role) ----
+_SB_CFG_CACHE = {}
+_SB_CFG_LOCK = threading.Lock()
+
+
+def _sb_creds():
+    url = (os.environ.get("SUPABASE_URL") or "").strip().rstrip("/")
+    key = (os.environ.get("SUPABASE_SERVICE_ROLE") or "").strip()
+    return url, key
+
+
+def _sb_config(squad):
+    """Config do squad no Supabase ({} se não houver). Cache curto (30s)."""
+    url, key = _sb_creds()
+    if not url or not key:
+        return {}
+    now = time.time()
+    with _SB_CFG_LOCK:
+        v = _SB_CFG_CACHE.get(squad)
+        if v and v[0] > now:
+            return v[1]
+    try:
+        u = "%s/rest/v1/config?squad=eq.%s&select=*" % (url, urlparse.quote(str(squad)))
+        req = urlrequest.Request(u, headers={"apikey": key, "Authorization": "Bearer " + key})
+        with urlrequest.urlopen(req, timeout=10) as r:
+            rows = json.loads(r.read().decode("utf-8"))
+        cfg = rows[0] if rows else {}
+    except Exception as e:
+        print("[supabase] config %s falhou: %s" % (squad, e))
+        cfg = {}
+    with _SB_CFG_LOCK:
+        _SB_CFG_CACHE[squad] = (now + 30, cfg)
+    return cfg
+
+
+def _config_status():
+    out = {}
+    for sq in ("azul", "laranja"):
+        c = _sb_config(sq)
+        out[sq] = {
+            "clickup": bool(c.get("clickup_token") and c.get("clickup_space_id")),
+            "googleCalendar": bool(c.get("gcal_api_key") and c.get("gcal_calendar_id")),
+            "nps": bool(c.get("nps_link_interna") or c.get("nps_link_externa")),
+            "controle": bool(c.get("controle_link")),
+            "ltv": bool(c.get("ltv_link")),
+        }
+    return out
+
+
 class handler(BaseHTTPRequestHandler):
     # ---- util ----------------------------------------------------------
     def _send_json(self, status, payload):
@@ -109,11 +158,17 @@ class handler(BaseHTTPRequestHandler):
             return self.handle_nps(parts, qs)
         if familia == "sheet":
             return self.handle_sheet(parts, qs)
+        if familia == "config":
+            return self._send_json(200, _config_status())
         return self._send_json(404, {"error": "rota /api desconhecida"})
 
     # ---- Planilha genérica (Controle/Onboarding) -----------------------
     def handle_sheet(self, parts, qs):
-        link = (qs.get("url", [None])[0])
+        squad = parts[1] if len(parts) > 1 else ""
+        src = (qs.get("src", [None])[0])
+        sbc = _sb_config(squad)
+        sb_link = sbc.get(src + "_link") if src in ("controle", "ltv") else None
+        link = (qs.get("url", [None])[0]) or sb_link
         sheet = qs.get("sheet", [None])[0]  # aba por NOME (ex.: "Squad Laranja")
         if not link:
             return self._send_json(400, {"error": "sem link da planilha de controle"})
@@ -133,10 +188,11 @@ class handler(BaseHTTPRequestHandler):
     def handle_clickup(self, parts, qs):
         if len(parts) < 3:
             return self._send_json(400, {"error": "rota inválida. Use /api/clickup/<squad>/<acao>"})
-        acao = parts[2]
-        # Token: header X-CU-Token (navegador) ou env CLICKUP_TOKEN (fallback opcional).
-        token = self.headers.get("X-CU-Token") or os.environ.get("CLICKUP_TOKEN")
-        space_id = (qs.get("spaceId", [None])[0])
+        squad, acao = parts[1], parts[2]
+        sbc = _sb_config(squad)
+        # Token: header X-CU-Token (navegador) ou env CLICKUP_TOKEN ou config do Supabase.
+        token = self.headers.get("X-CU-Token") or os.environ.get("CLICKUP_TOKEN") or sbc.get("clickup_token")
+        space_id = (qs.get("spaceId", [None])[0]) or sbc.get("clickup_space_id")
         if not token:
             return self._send_json(401, {
                 "error": "sem token do ClickUp",
@@ -184,9 +240,10 @@ class handler(BaseHTTPRequestHandler):
     def handle_gcal(self, parts, qs):
         if len(parts) < 3:
             return self._send_json(400, {"error": "rota inválida. Use /api/gcal/<squad>/events|inspect"})
-        acao = parts[2]
-        api_key = self.headers.get("X-GC-Key") or os.environ.get("GCAL_KEY")
-        calendar_id = (qs.get("calendarId", [None])[0])
+        squad, acao = parts[1], parts[2]
+        sbc = _sb_config(squad)
+        api_key = self.headers.get("X-GC-Key") or os.environ.get("GCAL_KEY") or sbc.get("gcal_api_key")
+        calendar_id = (qs.get("calendarId", [None])[0]) or sbc.get("gcal_calendar_id")
         if not api_key:
             return self._send_json(401, {"error": "sem API key da Agenda", "dica": "preencha a API Key do Google na aba Integrações"})
         if not calendar_id:
@@ -205,7 +262,10 @@ class handler(BaseHTTPRequestHandler):
     def handle_nps(self, parts, qs):
         if len(parts) < 3:
             return self._send_json(400, {"error": "rota inválida. Use /api/nps/<squad>/externa|interna"})
-        link = (qs.get("url", [None])[0])
+        squad, acao = parts[1], parts[2]
+        sbc = _sb_config(squad)
+        sb_link = sbc.get("nps_link_interna") if acao == "interna" else sbc.get("nps_link_externa")
+        link = (qs.get("url", [None])[0]) or sb_link
         sheet = qs.get("sheet", [None])[0]  # aba por NOME (ex.: "Julho de 2027")
         if not link:
             return self._send_json(400, {"error": "sem link da planilha", "dica": "preencha o link da NPS na aba Integrações"})
