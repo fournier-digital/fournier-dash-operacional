@@ -37,6 +37,7 @@ import sys
 import threading
 import time
 import unicodedata
+from concurrent.futures import ThreadPoolExecutor
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib import request as urlrequest, error as urlerror, parse as urlparse
 
@@ -126,6 +127,7 @@ class Handler(SimpleHTTPRequestHandler):
         # Dev local: NUNCA cachear, para que mudanças em JS/HTML apareçam sempre
         # no reload (evita o navegador rodar um arquivo velho em cache).
         self.send_header("Cache-Control", "no-store, max-age=0")
+        self.send_header("X-Content-Type-Options", "nosniff")
         super().end_headers()
 
     # Bloqueia segredos/código do servidor e desliga o 304 (cache do navegador).
@@ -202,7 +204,7 @@ class Handler(SimpleHTTPRequestHandler):
         parsed = urlparse.urlparse(self.path)
         parts = [p for p in parsed.path.split("/") if p]  # api / clickup / <squad> / <acao>
         if len(parts) < 4:
-            return self._send_json(400, {"error": "rota inválida. Use /api/clickup/<squad>/tasks|inspect"})
+            return self._send_json(400, {"error": "rota inválida. Use /api/clickup/<squad>/<acao>"})
         squad, acao = parts[2], parts[3]
 
         cfg = load_config().get(squad, {}) or {}
@@ -309,7 +311,7 @@ class Handler(SimpleHTTPRequestHandler):
         cached = _cache_get(ck)
         if cached is not None:
             return cached
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         tmin = (now - datetime.timedelta(days=120)).strftime("%Y-%m-%dT%H:%M:%SZ")
         tmax = (now + datetime.timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%SZ")
         out = []
@@ -500,7 +502,7 @@ class Handler(SimpleHTTPRequestHandler):
             lote = data.get("tasks", []) or []
             for t in lote:
                 out.append(self._proj_task(t))
-            if len(lote) < 100 or page > 120:
+            if data.get("last_page") is True or len(lote) < 100 or page > 120:
                 break
             page += 1
         return out
@@ -513,25 +515,32 @@ class Handler(SimpleHTTPRequestHandler):
         cached = _cache_get(ck)
         if cached is not None:
             return cached
-        team_id = self._team_do_space(token, space_id)
-        if not team_id:
-            return [], {}
-        list_ids = []
-        meta = {}
-        for fo in self._folders_do_space(token, space_id):
-            if fo.get("id") is not None:
-                meta[str(fo.get("id"))] = fo.get("date_created")
-            for l in (fo.get("lists") or []):
-                if _lista_relevante(l.get("name")):
-                    list_ids.append(l.get("id"))
-        # listas SOLTAS do space (sem pasta), ex.: "Demandas Agente" — se relevantes.
-        # Essas tarefas casam com o cliente pelo NOME no título (feito no front).
-        try:
-            for l in (self._cu_get(token, "%s/space/%s/list?archived=false" % (CLICKUP_BASE, urlparse.quote(str(space_id)))) or {}).get("lists", []) or []:
-                if _lista_relevante(l.get("name")):
-                    list_ids.append(l.get("id"))
-        except Exception:
-            pass
+        # PERF (cold): team, pastas e listas SOLTAS resolvidos em PARALELO (antes eram 3
+        # round-trips sequenciais ao ClickUp). Consumidos na MESMA ordem -> exceções/erros
+        # idênticos ao fluxo anterior; a montagem de list_ids/meta abaixo não muda.
+        with ThreadPoolExecutor(max_workers=3) as _ex:
+            f_team = _ex.submit(self._team_do_space, token, space_id)
+            f_folders = _ex.submit(self._folders_do_space, token, space_id)
+            f_lists = _ex.submit(lambda: (self._cu_get(token, "%s/space/%s/list?archived=false" % (CLICKUP_BASE, urlparse.quote(str(space_id)))) or {}).get("lists", []) or [])
+            team_id = f_team.result()
+            if not team_id:
+                return [], {}
+            list_ids = []
+            meta = {}
+            for fo in f_folders.result():
+                if fo.get("id") is not None:
+                    meta[str(fo.get("id"))] = fo.get("date_created")
+                for l in (fo.get("lists") or []):
+                    if _lista_relevante(l.get("name")):
+                        list_ids.append(l.get("id"))
+            # listas SOLTAS do space (sem pasta), ex.: "Demandas Agente" — se relevantes.
+            # Essas tarefas casam com o cliente pelo NOME no título (feito no front).
+            try:
+                for l in f_lists.result():
+                    if _lista_relevante(l.get("name")):
+                        list_ids.append(l.get("id"))
+            except Exception:
+                pass
         if not list_ids:
             _cache_set(ck, ([], meta))
             return [], meta

@@ -8,7 +8,7 @@
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ctext x='16' y='23' font-family='Arial,Helvetica,sans-serif' font-size='21' font-weight='800' fill='white' text-anchor='middle'%3EF%3C/text%3E%3C/svg%3E" />
     <meta name="theme-color" content="#2563eb" />
 
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <script>
       tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', "system-ui", "-apple-system", "Segoe UI", "sans-serif"] } } } };
     </script>
@@ -16,9 +16,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Versões PINADAS (= o que o float servia em 10/jul/2026): elimina o redirect 302
+         por visita e habilita cache de 1 ano do CDN. Bytes idênticos ao float do dia. -->
+    <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@8.0.4/babel.min.js"></script>
 
     <style>
       html, body { min-height: 100%; }
@@ -61,10 +63,6 @@
       @keyframes fdDot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.35); opacity: .55; } }
       .fd-dot { animation: fdDot 1.6s ease-in-out infinite; }
       @keyframes fdSweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(220%); } }
-      .fd-sweep { position: relative; overflow: hidden; }
-      .fd-sweep::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.07) 50%, transparent 60%); animation: fdSweep 5.5s ease-in-out infinite; }
-      @keyframes fdSpin { to { transform: rotate(360deg); } }
-      .fd-spin { animation: fdSpin .7s linear infinite; }
       .fd-skel { position: relative; overflow: hidden; background: rgba(30,41,59,.6); }
       .fd-skel::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(148,163,184,.13) 50%, transparent 65%); animation: fdSweep 1.6s ease-in-out infinite; }
       /* stagger de entrada das linhas (cap em 8) — curto p/ não passar sensação de lentidão */
@@ -81,8 +79,6 @@
       /* pop de menu / confirmação / logo */
       @keyframes fdPop { from { opacity:0; transform:scale(.96) translateY(-4px); } to { opacity:1; transform:none; } }
       .fd-pop { animation: fdPop var(--fd-fast) var(--fd-ease) both; transform-origin: top right; }
-      @keyframes fdPopOk { 0%{opacity:0;transform:scale(.8) translateY(2px)} 60%{transform:scale(1.06)} 100%{opacity:1;transform:none} }
-      .fd-pop-ok { animation: fdPopOk 320ms var(--fd-ease-pop) both; }
       @keyframes fdLogoIn { 0%{transform:scale(.6);opacity:0} 60%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
       .fd-logo { animation: fdLogoIn 550ms var(--fd-ease-pop) both; }
       /* sparkline desenhando + ponto final */
@@ -117,19 +113,19 @@
       window.__fdTimer = setTimeout(function () { fdErro("Tempo esgotado: o app não renderizou. Veja o console (F12)."); }, 12000);
     </script>
 
-    <script src="src/lib/format.js?v=59"></script>
-    <script src="src/lib/clientes.js?v=59"></script>
-    <script src="src/lib/configStore.js?v=59"></script>
-    <script src="src/lib/auth.js?v=59"></script>
-    <script src="src/lib/clienteStore.js?v=59"></script>
-    <script src="src/mocks/data.js?v=59"></script>
-    <script src="src/engine/criticidade.js?v=59"></script>
-    <script src="src/integrations/clickup.js?v=59"></script>
-    <script src="src/integrations/googleCalendar.js?v=59"></script>
-    <script src="src/integrations/nps.js?v=59"></script>
-    <script src="src/integrations/controle.js?v=59"></script>
-    <script src="src/integrations/ltv.js?v=59"></script>
-    <script src="src/integrations/registry.js?v=59"></script>
+    <script defer src="src/lib/format.js?v=60"></script>
+    <script defer src="src/lib/clientes.js?v=60"></script>
+    <script defer src="src/lib/configStore.js?v=60"></script>
+    <script defer src="src/lib/auth.js?v=60"></script>
+    <script defer src="src/lib/clienteStore.js?v=60"></script>
+    <script defer src="src/mocks/data.js?v=60"></script>
+    <script defer src="src/engine/criticidade.js?v=60"></script>
+    <script defer src="src/integrations/clickup.js?v=60"></script>
+    <script defer src="src/integrations/googleCalendar.js?v=60"></script>
+    <script defer src="src/integrations/nps.js?v=60"></script>
+    <script defer src="src/integrations/controle.js?v=60"></script>
+    <script defer src="src/integrations/ltv.js?v=60"></script>
+    <script defer src="src/integrations/registry.js?v=60"></script>
 
     <script type="text/app-jsx" id="app-src">
       const { useState, useEffect, useMemo } = React;
@@ -199,8 +195,8 @@
             </button>
             {open && (
               <div role="menu" className="fd-pop absolute right-0 mt-1 z-30 w-52 rounded-xl border border-slate-700 bg-slate-900 shadow-xl p-1">
-                <button onClick={() => { setResp(null); setOpen(false); }} className={`w-full text-left text-[13px] rounded-lg px-2.5 py-1.5 ${!resp ? "bg-slate-700 text-white" : "text-slate-300 hover:bg-slate-800"}`}>Todos os responsáveis</button>
-                {reps.map((r) => <button key={r} onClick={() => { setResp(r); setOpen(false); }} className={`w-full text-left text-[13px] rounded-lg px-2.5 py-1.5 ${resp === r ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}>{r}</button>)}
+                <button role="menuitem" onClick={() => { setResp(null); setOpen(false); }} className={`w-full text-left text-[13px] rounded-lg px-2.5 py-1.5 ${!resp ? "bg-slate-700 text-white" : "text-slate-300 hover:bg-slate-800"}`}>Todos os responsáveis</button>
+                {reps.map((r) => <button key={r} role="menuitem" onClick={() => { setResp(r); setOpen(false); }} className={`w-full text-left text-[13px] rounded-lg px-2.5 py-1.5 ${resp === r ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}>{r}</button>)}
               </div>
             )}
           </div>
@@ -208,6 +204,7 @@
       }
 
       const SQ_TXT = { azul: "#93c5fd", laranja: "#fdba74" };
+      const HOJE_LONGA = FD.NOW.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" }); // FD.NOW é imutável por sessão
       const NIVEL = {
         vermelho: { dot: "#ff3b5c", chip: "bg-rose-500/20 text-rose-300", label: "Muito crítico" },
         laranja: { dot: "#ff7a1a", chip: "bg-orange-500/20 text-orange-300", label: "Crítico" },
@@ -238,19 +235,27 @@
       const NPS_TXT = { green: "text-emerald-300", amber: "text-amber-300", orange: "text-orange-300", red: "text-rose-300", slate: "text-slate-400" };
       const NPS_DOT = { green: "bg-emerald-500", amber: "bg-amber-400", orange: "bg-orange-500", red: "bg-rose-500", slate: "bg-slate-600" };
       const NPS_LABEL = { green: "promotor", amber: "neutro", orange: "insatisfeito", red: "crítico", slate: "—" };
+      // Barra/texto de status das listas (Renovações + Reuniões) — antes duplicados nos 2 componentes.
+      const STATUS_BARRA = { tentativa: "bg-violet-500", blue: "bg-blue-500", green: "bg-emerald-500", amber: "bg-amber-400", orange: "bg-orange-500", red: "bg-red-500", slate: "bg-slate-700" };
+      const STATUS_TXT = { tentativa: "text-violet-300", blue: "text-blue-300", green: "text-emerald-300", amber: "text-amber-300", orange: "text-orange-300", red: "text-red-300", slate: "text-slate-400" };
+      // Tom dos números de KPI/Tile — antes duplicado em KpiMini e Tile.
+      const TONE_TXT = { red: "text-red-400", amber: "text-amber-400", orange: "text-orange-400", green: "text-emerald-400", blue: "text-blue-300", slate: "text-slate-100" };
 
       function Semaforo({ nivel, size = 10 }) {
         return <span className="inline-block rounded-full shrink-0 transition-transform duration-150 group-hover:scale-125" style={{ width: size, height: size, backgroundColor: NIVEL[nivel].dot, boxShadow: `0 0 4px ${NIVEL[nivel].dot}cc, 0 0 0 1.5px ${NIVEL[nivel].dot}55` }} title={NIVEL[nivel].label} />;
       }
+      // Item de legenda (bolinha + contagem) — em escopo de módulo p/ o React reconciliar
+      // no lugar (definido dentro do componente vira um TIPO novo a cada render -> remount).
+      const Legend = ({ color, n, t }) => <span className="flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${color}`} />{n} {t}</span>;
       // Legenda de cores que também FILTRA: clica numa cor -> mostra só aquela; clica de novo -> todos.
       function FiltroCores({ itens, ativo, onToggle }) {
         return (
-          <div className="px-4 py-2 border-b border-slate-800/60 flex flex-wrap items-center gap-1.5 text-[10px]">
+          <div role="group" aria-label="Filtrar por cor" className="px-4 py-2 border-b border-slate-800/60 flex flex-wrap items-center gap-1.5 text-[10px]">
             {itens.map((it) => {
               const on = ativo === it.cor;
               const vazio = it.n === 0; // cor sem clientes: vira só legenda (não filtra)
               return (
-                <button key={it.cor} disabled={vazio} onClick={() => onToggle(it.cor)} title={vazio ? "Sem clientes nesta cor" : "Filtrar por esta cor"} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 border transition active:scale-95 ${vazio ? "border-transparent text-slate-600 cursor-default" : on ? "border-slate-400 bg-slate-700/70 text-slate-100" : "border-slate-700/40 text-slate-500 hover:text-slate-200 hover:border-slate-600"}`}>
+                <button key={it.cor} disabled={vazio} aria-pressed={on} onClick={() => onToggle(it.cor)} title={vazio ? "Sem clientes nesta cor" : "Filtrar por esta cor"} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 border transition active:scale-95 ${vazio ? "border-transparent text-slate-600 cursor-default" : on ? "border-slate-400 bg-slate-700/70 text-slate-100" : "border-slate-700/40 text-slate-500 hover:text-slate-200 hover:border-slate-600"}`}>
                   <span className={`w-2 h-2 rounded-full ${it.dot} ${vazio ? "opacity-40" : ""}`} />{it.label}{it.n != null ? ` · ${it.n}` : ""}
                 </button>
               );
@@ -295,7 +300,7 @@
 
       // KPI clicável — leva à aba já priorizada
       function KpiMini({ label, value, sub, tone = "slate", onClick }) {
-        const t = { red: "text-red-400", amber: "text-amber-400", orange: "text-orange-400", green: "text-emerald-400", blue: "text-blue-300", slate: "text-slate-100" }[tone] || "text-slate-100";
+        const t = TONE_TXT[tone] || "text-slate-100";
         return (
           <button onClick={onClick} className={`group ${CARD} px-2.5 sm:px-4 py-3 sm:py-3.5 text-left transition ${onClick ? "hover:border-slate-600 hover:bg-slate-800/40 active:scale-[.98]" : "cursor-default"}`}>
             <div className="flex items-center justify-between gap-1"><div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-slate-400 font-semibold">{label}</div>{onClick && <span className="hidden sm:inline text-slate-500 group-hover:text-blue-300 transition">›</span>}</div>
@@ -350,16 +355,16 @@
             <div key={squad + barColor} className="h-0.5 w-full fd-accent" style={{ background: `linear-gradient(90deg, ${barColor}, transparent 70%)` }} />
             <div className="max-w-6xl mx-auto px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                <div className="flex items-center gap-2.5 min-w-0"><div className="w-8 h-8 rounded-xl text-white grid place-items-center font-extrabold text-sm shrink-0 fd-logo" style={{ background: accent, boxShadow: `0 0 9px -4px ${accent}` }}>F</div><div className="leading-tight min-w-0"><div className="font-bold text-slate-100 text-[15px] tracking-tight truncate">{sessao.nome}</div><div className="text-[11px] text-slate-500 flex items-center gap-1.5">{FD.NOW.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}{(() => { const av = (FD.integrations.squadsAoVivo && FD.integrations.squadsAoVivo()) || []; return av.length ? <span className="text-emerald-400/90 hidden sm:inline" title={"ClickUp ao vivo: " + av.join(", ")}>· <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 fd-live align-middle" /> ClickUp ao vivo ({av.join(", ")})</span> : <span className="text-amber-500/80 hidden sm:inline" title="Sincronização real entra na fase de integração">· dados de exemplo</span>; })()}</div></div></div>
+                <div className="flex items-center gap-2.5 min-w-0"><div className="w-8 h-8 rounded-xl text-white grid place-items-center font-extrabold text-sm shrink-0 fd-logo" style={{ background: accent, boxShadow: `0 0 9px -4px ${accent}` }}>F</div><div className="leading-tight min-w-0"><div className="font-bold text-slate-100 text-[15px] tracking-tight truncate">{sessao.nome}</div><div className="text-[11px] text-slate-500 flex items-center gap-1.5">{HOJE_LONGA}{(() => { const av = (FD.integrations.squadsAoVivo && FD.integrations.squadsAoVivo()) || []; return av.length ? <span className="text-emerald-400/90 hidden sm:inline" title={"ClickUp ao vivo: " + av.join(", ")}>· <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 fd-live align-middle" /> ClickUp ao vivo ({av.join(", ")})</span> : <span className="text-amber-500/80 hidden sm:inline" title="Sincronização real entra na fase de integração">· dados de exemplo</span>; })()}</div></div></div>
                 <div className="flex items-center gap-2 ml-auto">
                   {diretoria && <div className="flex bg-slate-800/80 rounded-xl p-0.5">{squads.map((s) => { const active = squad === s.key; const ac = s.key === "azul" ? "text-blue-300" : s.key === "laranja" ? "text-orange-300" : "text-slate-100"; return <button key={s.key} onClick={() => setSquad(s.key)} className={`px-2.5 min-h-[40px] inline-flex items-center text-[12px] font-semibold rounded-lg transition ${active ? `bg-slate-700 ${ac}` : "text-slate-400"}`}>{s.label}</button>; })}</div>}
-                  <div className="relative"><input value={busca || ""} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar cliente…" aria-label="Buscar cliente" className="text-[13px] bg-slate-800/80 border border-slate-700 rounded-xl pl-7 pr-6 min-h-[40px] w-32 sm:w-44 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40" /><span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[12px]" aria-hidden="true">🔍</span>{busca && <button onClick={() => setBusca("")} title="Limpar" className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs">✕</button>}</div>
+                  <div className="relative"><input value={busca || ""} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar cliente…" aria-label="Buscar cliente" className="text-[13px] bg-slate-800/80 border border-slate-700 rounded-xl pl-7 pr-6 min-h-[40px] w-32 sm:w-44 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40" /><span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[12px]" aria-hidden="true">🔍</span>{busca && <button onClick={() => setBusca("")} title="Limpar" aria-label="Limpar busca" className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs">✕</button>}</div>
                   <RepSelector reps={reps} resp={resp} setResp={setResp} />
                   <button onClick={() => setView("integracoes")} title="Integrações" aria-label="Integrações" className={`text-base px-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg transition ${view === "integracoes" ? "text-blue-300 bg-slate-800" : "text-slate-400 hover:text-slate-200"}`}><span aria-hidden="true">⚙</span></button>
                   <button onClick={onLogout} className="text-[12px] font-medium text-slate-400 hover:text-red-400 px-2 min-h-[44px] inline-flex items-center">Sair</button>
                 </div>
               </div>
-              <nav className="flex gap-1 mt-3 overflow-x-auto">{tabs.map((t) => { const active = view === t.key || (view === "detalhe" && t.key === "clientes"); return <button key={t.key} onClick={() => setView(t.key)} className={`px-3 min-h-[40px] inline-flex items-center text-[13px] font-semibold rounded-lg transition active:scale-95 whitespace-nowrap ${active ? "bg-blue-600 text-white fd-glow-on" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"}`}>{t.label}</button>; })}</nav>
+              <nav className="flex gap-1 mt-3 overflow-x-auto">{tabs.map((t) => { const active = view === t.key || (view === "detalhe" && t.key === "clientes"); return <button key={t.key} aria-current={active ? "page" : undefined} onClick={() => setView(t.key)} className={`px-3 min-h-[40px] inline-flex items-center text-[13px] font-semibold rounded-lg transition active:scale-95 whitespace-nowrap ${active ? "bg-blue-600 text-white fd-glow-on" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"}`}>{t.label}</button>; })}</nav>
             </div>
           </header>
         );
@@ -372,7 +377,6 @@
         escolas.forEach((e) => cont[e.crit.nivel]++);
         const emRisco = escolas.filter((e) => e.crit.riscoChurn).length;
         const pct = (n) => (n / total) * 100;
-        const Legend = ({ color, n, t }) => <span className="flex items-center gap-1.5"><span className={`w-2 h-2 rounded-full ${color}`} />{n} {t}</span>;
         return (
           <div className={`${CARD} p-5`}>
             <div className="flex items-end justify-between flex-wrap gap-4">
@@ -436,7 +440,7 @@
               <div className="divide-y divide-slate-800 max-h-80 overflow-auto">
                 {dias.map((k) => (
                   <div key={k} className="px-4 py-2.5">
-                    <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">{rotulo(k)} <span className="text-slate-600">· {grupos[k].length}</span></div>
+                    <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">{rotulo(k)} <span className="text-slate-500">· {grupos[k].length}</span></div>
                     <div className="space-y-1">
                       {grupos[k].map((ev) => (
                         <div key={ev.id} className="flex items-center gap-3 py-1">
@@ -533,8 +537,6 @@
           if (d < 45) return "amber";            // 30–44 dias
           return "green";                        // 45 dias+
         };
-        const BARRA = { green: "bg-emerald-500", amber: "bg-amber-400", orange: "bg-orange-500", red: "bg-red-500", slate: "bg-slate-700" };
-        const TXT = { green: "text-emerald-300", amber: "text-amber-300", orange: "text-orange-300", red: "text-red-300", slate: "text-slate-400" };
         const [filtroCor, setFiltroCor] = useState(null);
         const corCnt = (cc) => base.filter((x) => corRenov(x.dias) === cc).length;
         const listaF = filtroCor ? lista.filter(({ dias }) => corRenov(dias) === filtroCor) : lista;
@@ -557,7 +559,7 @@
             <div className={`${CARD} overflow-hidden`}>
               <div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between gap-2">
                 <span className={H}>Renovações · todos os clientes</span>
-                <select value={ord} onChange={(ev) => setOrd(ev.target.value)} aria-label="Ordenar renovações" className="text-[12px] bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 focus:outline-none focus:border-slate-500">
+                <select value={ord} onChange={(ev) => setOrd(ev.target.value)} aria-label="Ordenar renovações" className="text-[12px] bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-slate-500">
                   <option value="proxima">Vence antes (mais próxima)</option>
                   <option value="distante">Vence depois (mais tempo)</option>
                   <option value="critico">Mais crítico</option>
@@ -565,11 +567,11 @@
               </div>
               <FiltroCores itens={legenda} ativo={filtroCor} onToggle={(c) => setFiltroCor((f) => (f === c ? null : c))} />
               <div className="divide-y divide-slate-800 fd-stagger">
-                {listaF.length === 0 && <div className="px-4 py-8 text-center text-[13px] text-slate-500">Nenhum cliente nessa cor.</div>}
+                {listaF.length === 0 && <div className="px-4 py-8 text-center text-sm text-slate-500">Nenhum cliente nessa cor.</div>}
                 {listaF.map(({ escola: e, dias }) => { const cor = corRenov(dias); return (
                   <button key={e.id} onClick={() => abrirCliente(e.id)} className={`group w-full text-left px-4 py-3 ${ROW_HOVER} flex items-center gap-3`}>
-                    <span className={`w-1 self-stretch rounded-full shrink-0 ${BARRA[cor]}`} />
-                    <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-sm truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}{dias == null && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-700/60 text-slate-300">sem data no ClickUp</span>}{dias != null && dias <= 45 && e.crit.chanceRenovar < 45 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300">risco de não renovar</span>}</div><div className="text-[12px] text-slate-400 mt-0.5 flex items-center gap-2"><span className={dias == null ? "text-slate-500 italic" : `${TXT[cor]} font-bold`}>{dias == null ? "cadastrar fim do contrato" : renovTxt(dias)}</span><span className="text-slate-600">·</span><span>{mesesAtivoTxt(e)} ativo</span></div></div>
+                    <span className={`w-1 self-stretch rounded-full shrink-0 ${STATUS_BARRA[cor]}`} />
+                    <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-sm truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}{dias == null && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-700/60 text-slate-300">sem data no ClickUp</span>}{dias != null && dias <= 45 && e.crit.chanceRenovar < 45 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300">risco de não renovar</span>}</div><div className="text-[12px] text-slate-400 mt-0.5 flex items-center gap-2"><span className={dias == null ? "text-slate-500 italic" : `${STATUS_TXT[cor]} font-bold`}>{dias == null ? "cadastrar fim do contrato" : renovTxt(dias)}</span><span className="text-slate-600">·</span><span>{mesesAtivoTxt(e)} ativo</span></div></div>
                     <div className="hidden sm:flex gap-1 shrink-0"><NpsChip label="ext" valor={e.npsExterno} /></div>
                     <ChanceBar pct={e.crit.chanceRenovar} nivel={e.crit.chanceNivel} />
                     <Chevron />
@@ -591,6 +593,7 @@
           pendente: e.crit.semReuniao,
           temUltima: !!e.ultimaReuniao,
           proxDias: e.proximaReuniao ? diasAte(e.proximaReuniao) : null,
+          tent: FD.clienteStore.tentativa(e.nome), // lido 1x por cliente (não por uso)
         }));
         lista.sort((a, b) => (desc ? b.dias - a.dias : a.dias - b.dias));
         const pendentes = lista.filter((x) => x.pendente).length;
@@ -599,7 +602,7 @@
         const corDe = (x) => {
           const agendada = x.proxDias != null && x.proxDias >= 0;
           const emDia = x.temUltima && x.dias < 12;                    // reunião recente (<12d) -> não precisa contato
-          if (!agendada && !emDia && FD.clienteStore.tentativa(x.e.nome).ativa) return "tentativa"; // contato já feito (M5d)
+          if (!agendada && !emDia && x.tent.ativa) return "tentativa"; // contato já feito (M5d)
           if (agendada) return "blue";                                 // reunião marcada
           if (!x.temUltima) return "slate";                            // sem registro de reunião
           const d = x.dias;
@@ -607,11 +610,11 @@
           if (d >= 12) return "amber";                                 // atenção (chegando nos 15d)
           return "green";                                              // em dia
         };
-        const BARRA = { tentativa: "bg-violet-500", blue: "bg-blue-500", green: "bg-emerald-500", amber: "bg-amber-400", orange: "bg-orange-500", red: "bg-red-500", slate: "bg-slate-700" };
-        const TXT = { tentativa: "text-violet-300", blue: "text-blue-300", green: "text-emerald-300", amber: "text-amber-300", orange: "text-orange-300", red: "text-red-300", slate: "text-slate-400" };
         const [filtroCor, setFiltroCor] = useState(null);
-        const corCnt = (cc) => lista.filter((x) => corDe(x) === cc).length;
-        const listaF = filtroCor ? lista.filter((x) => corDe(x) === filtroCor) : lista;
+        // PERF: cor computada 1x por cliente (antes: legenda 6x + filtro + linha, por render)
+        lista.forEach((x) => { x.cor = corDe(x); });
+        const corCnt = (cc) => lista.reduce((n, x) => n + (x.cor === cc ? 1 : 0), 0);
+        const listaF = filtroCor ? lista.filter((x) => x.cor === filtroCor) : lista;
         const legenda = [
           { cor: "blue", dot: "bg-blue-500", label: "marcada", n: corCnt("blue") },
           { cor: "green", dot: "bg-emerald-500", label: "em dia (<12d)", n: corCnt("green") },
@@ -636,15 +639,15 @@
               <FiltroCores itens={legenda} ativo={filtroCor} onToggle={(c) => setFiltroCor((f) => (f === c ? null : c))} />
               {listaF.length === 0 ? <div className="px-4 py-10 text-center text-sm text-slate-500">Nenhum cliente nessa cor.</div> : (
                 <div className="divide-y divide-slate-800 fd-stagger">
-                  {listaF.map((x) => { const { e, dias, temUltima, proxDias } = x; const agendada = proxDias != null && proxDias >= 0; const podeContato = !agendada && !(temUltima && dias < 12); const cor = corDe(x); const tent = FD.clienteStore.tentativa(e.nome); return (
+                  {listaF.map((x) => { const { e, dias, temUltima, proxDias, cor, tent } = x; const agendada = proxDias != null && proxDias >= 0; const podeContato = !agendada && !(temUltima && dias < 12); return (
                     <div key={e.id} className={`group w-full ${ROW_HOVER} flex items-center gap-3 px-4 py-3 ${cor === "tentativa" ? "bg-violet-500/10" : cor === "blue" ? "bg-blue-500/5" : ""}`}>
-                      <span className={`w-1 self-stretch rounded-full shrink-0 ${BARRA[cor]}`} />
+                      <span className={`w-1 self-stretch rounded-full shrink-0 ${STATUS_BARRA[cor]}`} />
                       <Semaforo nivel={e.crit.nivel} size={10} />
                       <button onClick={() => abrirCliente(e.id)} className="flex-1 min-w-0 text-left">
                         <div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-sm truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}{agendada && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-300">📅 marcada</span>}{tent.ativa && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300">✓ contato feito</span>}</div>
                         <div className={`text-[12px] mt-0.5 ${tent.ativa ? "text-violet-300/90 font-semibold" : agendada ? "text-blue-300/90 font-semibold" : "text-slate-500"}`}>{tent.ativa ? `contato feito · reseta em ${Math.ceil(tent.restanteMs / 3600000)}h` : agendada ? `marcada p/ ${dataCurta(e.proximaReuniao)} · em ${proxDias}d` : (proxDias != null ? "próxima vencida — reagendar" : "sem reunião agendada")}</div>
                       </button>
-                      <span className={`text-[12px] font-bold shrink-0 ${TXT[cor]}`}>{temUltima ? `${dias}d sem reunião` : "nunca"}</span>
+                      <span className={`text-[12px] font-bold shrink-0 ${STATUS_TXT[cor]}`}>{temUltima ? `${dias}d sem reunião` : "nunca"}</span>
                       {podeContato && (tent.ativa
                         ? <button onClick={() => { FD.clienteStore.limparTentativa(e.nome); setTick((t) => t + 1); }} title="Desfazer — o contato ainda não foi feito" className="text-[11px] font-semibold text-violet-200 bg-violet-500/15 hover:bg-violet-500/25 rounded-lg px-2 py-1 shrink-0">desfazer</button>
                         : <button onClick={() => { FD.clienteStore.marcarTentativa(e.nome); setTick((t) => t + 1); }} title="Sinaliza que você já fez o contato para agendar a reunião (reseta sozinho em 24h)" className="text-[11px] font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 rounded-lg px-2 py-1 shrink-0">✓ marcar contato</button>)}
@@ -673,7 +676,7 @@
             {bloco.media3m != null && <div className="mt-1 text-[12px] text-slate-400">Geral últimos 3 meses: <span className="font-bold text-slate-200 fd-neon">{npsDisp(bloco.media3m)}</span> <span className="text-slate-500">/5</span></div>}
             <div className="mt-4 h-2.5 rounded-full overflow-hidden flex bg-slate-800"><div style={{ width: pct(bloco.prom) + "%" }} className="bg-emerald-500 fd-grow transition-[width] duration-700 ease-out" /><div style={{ width: pct(bloco.neutro) + "%" }} className="bg-slate-500 fd-grow transition-[width] duration-700 ease-out" /><div style={{ width: pct(bloco.detr) + "%" }} className="bg-red-500 fd-grow transition-[width] duration-700 ease-out" /></div>
             <div className="flex justify-between mt-2 text-[12px]"><span className="text-emerald-300">{bloco.prom} promotores</span><span className="text-slate-400">{bloco.neutro} neutros</span><span className="text-red-300">{bloco.detr} detratores</span></div>
-            <div className="text-[11px] text-slate-500 mt-2">{bloco.semResposta} sem coleta · índice NPS {bloco.score == null ? "—" : bloco.score} <span className="text-slate-600">(promotores − detratores, −100 a 100)</span></div>
+            <div className="text-[11px] text-slate-500 mt-2">{bloco.semResposta} sem coleta · índice NPS {bloco.score == null ? "—" : bloco.score} <span className="text-slate-500">(promotores − detratores, −100 a 100)</span></div>
           </div>
         );
       }
@@ -709,7 +712,7 @@
           itens.length === 0 ? <div className="px-4 py-8 text-center text-sm text-slate-500">{vazio}</div> :
           <div className="divide-y divide-slate-800 max-h-96 overflow-auto fd-stagger">{itens.map((e) => { const v = e[campo]; const cor = corNps(v); return (
             <button key={e.id} onClick={() => abrirCliente(e.id)} className={`group w-full text-left px-4 py-2.5 ${ROW_HOVER} flex items-center gap-3 ${cor === "red" ? "bg-red-500/5" : ""}`}>
-              <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-[13px] truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}{cor === "red" && <span className="text-[10px] font-bold text-red-300 bg-red-500/15 rounded px-1.5">crítico</span>}{cor === "orange" && <span className="text-[10px] font-bold text-orange-300 bg-orange-500/15 rounded px-1.5">insatisfeito</span>}</div><div className="text-[11px] text-slate-500 mt-0.5">renovar: {e.crit.chanceRenovar}%{e.crit.semReuniao ? ` · ${e.crit.diasSemReuniao}d sem reunião` : ""}</div></div>
+              <div className="flex-1 min-w-0"><div className="flex items-center gap-2 flex-wrap"><span className="font-semibold text-slate-100 text-[13px] truncate">{e.nome}</span>{showSquad && <SquadBadge squad={e.squad} small />}{cor === "red" && <span className="text-[10px] font-bold text-rose-300 bg-rose-500/15 rounded px-1.5">crítico</span>}{cor === "orange" && <span className="text-[10px] font-bold text-orange-300 bg-orange-500/15 rounded px-1.5">insatisfeito</span>}</div><div className="text-[11px] text-slate-500 mt-0.5">renovar: {e.crit.chanceRenovar}%{e.crit.semReuniao ? ` · ${e.crit.diasSemReuniao}d sem reunião` : ""}</div></div>
               <span className={`text-base font-bold shrink-0 ${tone(v)}`}>{npsDisp(v)}</span><Chevron />
             </button>
           ); })}</div>
@@ -722,7 +725,7 @@
             </div>
             {setoresResumo.setores.length > 0 && (
               <div className={`${CARD} p-5`}>
-                <div className="font-bold text-slate-100 text-sm flex items-center gap-2">🔍 Diagnóstico por setor <span className="text-[11px] text-slate-500 font-medium">· NPS externa · média do escopo atual</span></div>
+                <div className="font-bold text-slate-100 text-sm flex items-center gap-2">🔍 Diagnóstico por setor <span className="text-[11px] text-slate-500 font-medium">· NPS externo · média do escopo atual</span></div>
                 <div className="text-[12px] mt-1 mb-3">{setoresResumo.fracos.length
                   ? <span className="text-slate-400">⚠ Setores a melhorar: <b className="text-rose-300">{setoresResumo.fracos.map((s) => s.pergunta).join(" · ")}</b></span>
                   : <span className="text-emerald-300">Todos os setores bem avaliados pelos clientes 👏</span>}</div>
@@ -774,7 +777,7 @@
           <div className={`${CARD} overflow-hidden`}>
             <div className="px-4 py-3 border-b border-slate-800 text-sm flex items-center justify-between gap-2">
               <span className={H}>Clientes</span>
-              <select value={ord} onChange={(ev) => setOrd(ev.target.value)} aria-label="Ordenar clientes" className="text-[12px] bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 focus:outline-none focus:border-slate-500">
+              <select value={ord} onChange={(ev) => setOrd(ev.target.value)} aria-label="Ordenar clientes" className="text-[12px] bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-slate-500">
                 <option value="critico">Mais crítico</option>
                 <option value="ext_pior">NPS externo: pior → melhor</option>
                 <option value="ext_melhor">NPS externo: melhor → pior</option>
@@ -784,7 +787,7 @@
             </div>
             <FiltroCores itens={legenda} ativo={filtroCor} onToggle={(c) => setFiltroCor((f) => (f === c ? null : c))} />
             <div className="divide-y divide-slate-800 fd-stagger">
-              {ordenadasF.length === 0 && <div className="px-4 py-8 text-center text-[13px] text-slate-500">Nenhum cliente nessa cor.</div>}
+              {ordenadasF.length === 0 && <div className="px-4 py-8 text-center text-sm text-slate-500">Nenhum cliente nessa cor.</div>}
               {ordenadasF.map((e) => (
                 <button key={e.id} onClick={() => abrirCliente(e.id)} className={`group w-full text-left px-4 py-3 ${ROW_HOVER} flex items-center gap-3 transition`}>
                   <Semaforo nivel={e.crit.nivel} size={11} />
@@ -876,7 +879,7 @@
         );
       }
       function Tile({ label, value, sub, tone }) {
-        const t = { red: "text-red-400", amber: "text-amber-400", orange: "text-orange-400", green: "text-emerald-400", blue: "text-blue-300", slate: "text-slate-100" }[tone] || "text-slate-100";
+        const t = TONE_TXT[tone] || "text-slate-100";
         return <div className="bg-slate-800/60 rounded-xl px-4 py-3 border border-slate-800"><div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold">{label}</div><div className={`text-lg font-extrabold mt-0.5 ${t}`}>{value}</div>{sub && <div className="text-[11px] text-slate-500">{sub}</div>}</div>;
       }
       // Link externo por cliente (Planilha comercial / Dashboard 24h) — Módulo 4.
@@ -980,7 +983,7 @@
               const fracos = e.npsSetores.filter((s) => s.media != null && s.media < 7);
               return (
                 <div className={`${CARD} p-4`}>
-                  <div className="font-bold text-slate-100 text-sm flex items-center gap-2">🔍 Diagnóstico por setor <span className="text-[11px] text-slate-500 font-medium">· NPS externa · percepção do cliente</span></div>
+                  <div className="font-bold text-slate-100 text-sm flex items-center gap-2">🔍 Diagnóstico por setor <span className="text-[11px] text-slate-500 font-medium">· NPS externo · percepção do cliente</span></div>
                   <div className="text-[12px] text-slate-400 mt-1 mb-3">{fracos.length ? <span>Pontos a melhorar no projeto dele: <b className="text-rose-300">{fracos.map((s) => s.pergunta).join(" · ")}</b></span> : <span>Todos os setores bem avaliados pelo cliente 👏</span>}</div>
                   <div className="space-y-1.5">
                     {e.npsSetores.map((s, i) => { const cor = corNps(s.media); return (
@@ -1073,7 +1076,7 @@
 
         const Linha = (d) => (
           <button key={d.id} onClick={() => d.escola.id != null && abrirCliente(d.escola.id)} className={`group w-full text-left px-3 py-2 ${ROW_HOVER} flex items-center gap-2.5`}>
-            <div className="flex-1 min-w-0"><div className="font-semibold text-slate-100 text-[13px] truncate">{d.titulo}</div><div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">{showSquad && <SquadBadge squad={d.escola.squad} small />}<span className="truncate">{d.escola.nome}</span>{modoPessoa && d.lista && <span className="text-slate-600 shrink-0">· {d.lista}</span>}</div></div>
+            <div className="flex-1 min-w-0"><div className="font-semibold text-slate-100 text-[13px] truncate">{d.titulo}</div><div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">{showSquad && <SquadBadge squad={d.escola.squad} small />}<span className="truncate">{d.escola.nome}</span>{modoPessoa && d.lista && <span className="text-slate-500 shrink-0">· {d.lista}</span>}</div></div>
             {!modoPessoa && <span className="hidden sm:inline text-[11px] text-slate-400 w-24 text-right truncate">{d.responsavel}</span>}
             <span className={`text-[11px] font-bold w-16 text-right ${d.prazo ? (diffDias(d.prazo) < 0 ? "text-red-400" : diffDias(d.prazo) === 0 ? "text-amber-400" : "text-slate-500") : "text-slate-600"}`}>{d.prazo ? (diffDias(d.prazo) < 0 ? `${-diffDias(d.prazo)}d` : diffDias(d.prazo) === 0 ? "hoje" : dataCurta(d.prazo)) : "—"}</span>
           </button>
@@ -1088,7 +1091,7 @@
           <div className="space-y-3">
             {reps && reps.length > 0 && (
               <div className={`${CARD} p-3`}>
-                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Participantes do squad <span className="normal-case font-normal text-slate-600">· clique para ver as tarefas de cada um</span></div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-2">Participantes do squad <span className="normal-case font-normal text-slate-500">· clique para ver as tarefas de cada um</span></div>
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => setResp(null)} className={`text-[13px] font-semibold rounded-xl px-3 py-1.5 transition active:scale-95 ${!resp ? "bg-blue-600 text-white" : "bg-slate-800/70 text-slate-300 hover:text-slate-100 border border-slate-700"}`}>Todos</button>
                   {reps.map((r) => <button key={r} onClick={() => setResp(resp === r ? null : r)} className={`text-[13px] font-semibold rounded-xl px-3 py-1.5 transition active:scale-95 inline-flex items-center gap-1.5 ${resp === r ? "bg-blue-600 text-white fd-glow-on" : "bg-slate-800/70 text-slate-300 hover:text-slate-100 border border-slate-700"}`}><span>👤</span>{r}</button>)}
@@ -1328,6 +1331,7 @@
       }
 
       /* ---------------- APP ---------------- */
+      const ClienteDetailMemo = React.memo(ClienteDetail); // pula re-render quando escola/voltar não mudam
       function App() {
         const [sessao, setSessao] = useState(() => FD.auth.sessao());
         const [todas, setTodas] = useState(null);
@@ -1415,6 +1419,7 @@
         );
 
         const abrirCliente = (id) => { setNavDir("in"); setBackView(view); setSelId(id); setView("detalhe"); };
+        const voltar = React.useCallback(() => { setNavDir("out"); setView(backView); }, [backView]); // estável -> ClienteDetailMemo pula re-render
         const resetUI = () => { setNavDir(""); setSelId(null); setBackView("clientes"); setBusca(""); setResp(null); setRespTasks(null); setRespLoading(false); };
         const logout = () => { FD.auth.logout(); resetUI(); setSessao(null); setView("resumo"); setSquad("todos"); };
 
@@ -1452,7 +1457,7 @@
               {view === "out" && <ClientesOut escolasOut={outVis} ltv={ltvInfo} abrirCliente={abrirCliente} />}
               {view === "integracoes" && <Integracoes squads={sessao.squads} onSaved={() => setTick((t) => t + 1)} />}
               {view === "detalhe" && (selecionada
-                ? <ClienteDetail escola={selecionada} voltar={() => { setNavDir("out"); setView(backView); }} />
+                ? <ClienteDetailMemo escola={selecionada} voltar={voltar} />
                 : <div className={`${CARD} p-6 text-center`}><p className="text-slate-300 text-sm">Cliente fora da carteira atual.</p><button onClick={() => { setSelId(null); setView("clientes"); }} className="mt-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl px-4 py-2">Voltar para clientes</button></div>)}
             </div>
             </main>

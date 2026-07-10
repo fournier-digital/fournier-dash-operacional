@@ -63,7 +63,17 @@
   _VARIANTES.sort((a, b) => b.tk.length - a.tk.length);
 
   // Resolve um nome "qualquer" (pasta) para o nome oficial (ou mantém o original).
+  // Memoizado: função pura sobre tabelas imutáveis (_VARIANTES) e o mesmo nome se repete
+  // muito por carga (o registry canoniza e.nome 2x/escola). Cache limitado aos nomes vistos.
+  const _canonCache = new Map();
   function nomeCanonico(texto) {
+    const k = (texto == null ? "" : String(texto));
+    if (_canonCache.has(k)) return _canonCache.get(k);
+    const r = _nomeCanonicoCalc(texto);
+    _canonCache.set(k, r);
+    return r;
+  }
+  function _nomeCanonicoCalc(texto) {
     const ftk = tokens(texto);
     if (!ftk.length) return (texto || "").trim();
     const fset = new Set(ftk);

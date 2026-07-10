@@ -242,10 +242,13 @@
     // TODAS as tarefas (qualquer lista) de um responsável, sob demanda e rápido
     // (consulta filtrada por assignee no ClickUp). Usado pelo filtro de pessoa.
     async tarefasPorResponsavel(squads, repId) {
-      const out = [];
-      for (const sq of (squads || [])) {
-        if (!this.conectado(sq)) continue;
+      // PERF: squads consultados em PARALELO (antes era em série; com 2 squads a espera
+      // era a soma). Promise.all preserva a ordem dos squads, então o array final sai
+      // idêntico ao anterior (squad a squad); falha em um squad não afeta o outro.
+      const listas = await Promise.all((squads || []).map(async (sq) => {
+        if (!this.conectado(sq)) return [];
         const { token, spaceId } = FD.config[sq].clickup;
+        const out = [];
         try {
           const { tasks } = await chamarProxy("user-tasks", { token, squad: sq }, { spaceId, assignee: repId });
           for (const t of (tasks || [])) {
@@ -268,8 +271,9 @@
         } catch (e) {
           console.warn("[clickup] tarefasPorResponsavel falhou", sq, e.message);
         }
-      }
-      return out;
+        return out;
+      }));
+      return [].concat(...listas);
     },
   };
 })();

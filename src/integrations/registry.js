@@ -216,10 +216,19 @@
     const setoresMap = new Map(); // escolaId -> { pergunta: [scores] }  (SÓ externa)
     const comentariosMap = new Map(); // escolaId -> [{ ym, pergunta, texto }]  (pergunta aberta, SÓ externa)
     const get = (eobj) => { if (!dados.has(eobj.id)) dados.set(eobj.id, { e: eobj, ext: {}, int: {} }); return dados.get(eobj.id); };
+    // PERF: matching memoizado por nome — alvos é fixo durante a chamada e o mesmo nome
+    // repete por avaliador × mês (formato largo). Funções puras -> resultado idêntico.
+    const matchCache = new Map();
+    const matchDe = (nome) => {
+      if (matchCache.has(nome)) return matchCache.get(nome);
+      const m = FD.clientes.acharNoTexto(nome, alvos) || FD.clientes.melhorMatch(nome, alvos, 0.6);
+      matchCache.set(nome, m);
+      return m;
+    };
     const coletar = (meses, campo) => {
       for (const mz of meses) {
         for (const r of (mz.respostas || [])) {
-          const m = FD.clientes.acharNoTexto(r.nome, alvos) || FD.clientes.melhorMatch(r.nome, alvos, 0.6);
+          const m = matchDe(r.nome);
           if (!m) continue;
           const b = get(m.e)[campo];
           (b[mz.ym] = b[mz.ym] || []).push(r.score);

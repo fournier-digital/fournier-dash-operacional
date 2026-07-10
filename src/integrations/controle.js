@@ -45,7 +45,7 @@
   }
 
   const colIdx = (headers, nome) => { const a = norm(nome); return (headers || []).findIndex((h) => norm(h) === a); };
-  const cel = (r, i) => (i >= 0 ? String(r[i] == null ? "" : r[i]).trim() : "");
+  const cel = FD.lib.cel; // (era cópia local; agora compartilhada em format.js)
 
   async function lerAba(squad, link, aba) {
     const params = [];

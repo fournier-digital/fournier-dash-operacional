@@ -16,14 +16,27 @@
   const KEY = "FD_cliente_v1";
   const TTL_TENTATIVA = 24 * 60 * 60 * 1000; // 24h (reset automático da tentativa)
 
+  // PERF: cache em memória do JSON parseado — get()/tentativa() são chamados por LINHA
+  // nas listas (Reuniões), e cada chamada re-parseava o localStorage inteiro. Toda
+  // escrita passa por persistir() (que atualiza o cache); escrita de OUTRA aba invalida
+  // via evento "storage". Comportamento observável idêntico.
+  let cache = null;
   function carregar() {
-    try { return JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }
-    catch (e) { return {}; }
+    if (cache) return cache;
+    try { cache = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }
+    catch (e) { cache = {}; }
+    return cache;
   }
   function persistir(all) {
+    cache = all;
     try { localStorage.setItem(KEY, JSON.stringify(all)); }
-    catch (e) { console.warn("[clienteStore] não foi possível salvar:", e); }
+    catch (e) {
+      cache = null; // gravação falhou (quota/privado): invalida p/ reler o estado real
+      console.warn("[clienteStore] não foi possível salvar:", e);
+    }
   }
+  // outra aba escreveu -> invalida (mantém a semântica multi-aba do localStorage)
+  window.addEventListener("storage", (e) => { if (e.key === KEY) cache = null; });
   // chave estável por cliente (nome canônico, sem acento/maiúscula)
   function chave(canon) { return FD.lib.norm(canon || ""); }
 

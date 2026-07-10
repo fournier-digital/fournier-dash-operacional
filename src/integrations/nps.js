@@ -62,12 +62,19 @@
       return null;
     };
     // Descobre a caixa no mês mais recente (tenta capitalizada e, se vazia, minúscula).
+    // PERF: as variantes "label" de TODOS os meses já saem em paralelo com a sonda; no
+    // caso comum (aba capitalizada) o resto já está no ar — corta um estágio serial
+    // inteiro do caminho crítico. Se a sonda cair p/ "lower", refaz o resto em "lower"
+    // (comportamento idêntico ao anterior; as respostas "label" extras são descartadas).
+    const pLabel = meses.map((m) => carregarMes(m, "label"));
     const recente = meses[0];
-    let casing = "label";
-    let mesRecente = await carregarMes(recente, "label");
-    if (!mesRecente) { const low = await carregarMes(recente, "lower"); if (low) { mesRecente = low; casing = "lower"; } }
-    // Demais meses: só a grafia descoberta (convenção é capitalizada) -> 1 req/mês.
-    const resto = await Promise.all(meses.slice(1).map((m) => carregarMes(m, casing)));
+    let mesRecente = await pLabel[0];
+    let resto = null;
+    if (!mesRecente) {
+      const low = await carregarMes(recente, "lower");
+      if (low) { mesRecente = low; resto = await Promise.all(meses.slice(1).map((m) => carregarMes(m, "lower"))); }
+    }
+    if (!resto) resto = await Promise.all(pLabel.slice(1));
     return [mesRecente].concat(resto).filter(Boolean).sort((a, b) => (a.ym < b.ym ? -1 : 1));
   }
 
@@ -101,6 +108,8 @@
     const media = (notas) => r1(conv(notas.reduce((s, n) => s + n, 0) / notas.length));
     const mediaRaw = (notas) => Math.round((notas.reduce((s, n) => s + n, 0) / notas.length) * 100) / 100;
     const ehTimestamp = (h) => /carimbo|timestamp|data|hora/.test(norm(h));
+    // NOTA: intencionalmente diferente do parseData do ltv.js — aqui "2026-07-03T10:00"
+    // PRESERVA a hora (carimbo do NPS). NÃO consolidar com o do LTV (que zera a hora).
     const parseData = (v) => {
       const s = String(v == null ? "" : v).trim();
       const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);

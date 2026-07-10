@@ -59,6 +59,10 @@
     return out.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   };
 
+  // Célula de planilha -> string trimada ("" se ausente/negativo). Compartilhada por
+  // controle.js e ltv.js (eram cópias byte-a-byte).
+  FD.lib.cel = function (r, i) { return i >= 0 ? String(r[i] == null ? "" : r[i]).trim() : ""; };
+
   FD.lib.SQUADS = {
     azul: {
       key: "azul",

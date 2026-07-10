@@ -33,8 +33,10 @@
   const MS_MES = 30.44 * 864e5;
 
   const colIdx = (headers, re) => (headers || []).findIndex((h) => re.test(norm(h)));
-  const cel = (r, i) => (i >= 0 ? String(r[i] == null ? "" : r[i]).trim() : "");
+  const cel = FD.lib.cel; // (era cópia local; agora compartilhada em format.js)
 
+  // NOTA: intencionalmente diferente do parseData do nps.js — aqui datas ISO com hora são
+  // tratadas como data-só (contrato/saída). NÃO consolidar com o do NPS (que preserva a hora).
   function parseData(v) {
     const s = String(v == null ? "" : v).trim();
     if (!s) return null;
