@@ -115,21 +115,21 @@
 
     <!-- Supabase JS (UMD) — armazenagem compartilhada cross-device; antes dos módulos FD -->
     <script defer src="https://unpkg.com/@supabase/supabase-js@2.110.2/dist/umd/supabase.js"></script>
-    <script defer src="src/lib/format.js?v=64"></script>
-    <script defer src="src/lib/clientes.js?v=64"></script>
-    <script defer src="src/lib/configStore.js?v=64"></script>
-    <script defer src="src/lib/auth.js?v=64"></script>
-    <script defer src="src/lib/supabase.js?v=64"></script>
-    <script defer src="src/lib/clienteStore.js?v=64"></script>
-    <script defer src="src/lib/snapshotStore.js?v=64"></script>
-    <script defer src="src/mocks/data.js?v=64"></script>
-    <script defer src="src/engine/criticidade.js?v=64"></script>
-    <script defer src="src/integrations/clickup.js?v=64"></script>
-    <script defer src="src/integrations/googleCalendar.js?v=64"></script>
-    <script defer src="src/integrations/nps.js?v=64"></script>
-    <script defer src="src/integrations/controle.js?v=64"></script>
-    <script defer src="src/integrations/ltv.js?v=64"></script>
-    <script defer src="src/integrations/registry.js?v=64"></script>
+    <script defer src="src/lib/format.js?v=65"></script>
+    <script defer src="src/lib/clientes.js?v=65"></script>
+    <script defer src="src/lib/configStore.js?v=65"></script>
+    <script defer src="src/lib/auth.js?v=65"></script>
+    <script defer src="src/lib/supabase.js?v=65"></script>
+    <script defer src="src/lib/clienteStore.js?v=65"></script>
+    <script defer src="src/lib/snapshotStore.js?v=65"></script>
+    <script defer src="src/mocks/data.js?v=65"></script>
+    <script defer src="src/engine/criticidade.js?v=65"></script>
+    <script defer src="src/integrations/clickup.js?v=65"></script>
+    <script defer src="src/integrations/googleCalendar.js?v=65"></script>
+    <script defer src="src/integrations/nps.js?v=65"></script>
+    <script defer src="src/integrations/controle.js?v=65"></script>
+    <script defer src="src/integrations/ltv.js?v=65"></script>
+    <script defer src="src/integrations/registry.js?v=65"></script>
 
     <script type="text/app-jsx" id="app-src">
       const { useState, useEffect, useMemo } = React;
@@ -1357,7 +1357,32 @@
 
         // Render progressivo: pinta a carteira do ClickUp assim que chega
         // (1º setTodas via callback) e re-pinta com NPS/Agenda/Controle (2º setTodas).
-        useEffect(() => { FD.integrations.carregar(setTodas).then((esc) => { setTodas(esc); if (FD.snapshotStore) FD.snapshotStore.gravar(esc); }).catch((err) => { console.error(err); setTodas([]); }); }, []);
+        const [snapEm, setSnapEm] = useState(null);
+        const vivoRef = React.useRef(true);
+        // Recarrega AO VIVO (fetch+normaliza), pinta e regrava o snapshot. Boot (se
+        // snapshot ausente/velho) e botão "atualizar".
+        const recarregar = React.useCallback(() => {
+          return FD.integrations.carregar((p) => { if (vivoRef.current) setTodas(p); })
+            .then((esc) => { if (vivoRef.current) { setTodas(esc); setSnapEm(FD.NOW.toISOString()); } if (FD.snapshotStore) FD.snapshotStore.gravar(esc); })
+            .catch((err) => { console.error(err); if (vivoRef.current) setTodas([]); });
+        }, []);
+        // BOOT read-model: lê o snapshot do Supabase -> render INSTANTÂNEO (re-avalia a
+        // criticidade contra FD.NOW pois ela é congelada no load) -> stale-while-revalidate
+        // (recarrega ao vivo se velho). Qualquer falha do snapshot cai no fluxo ao vivo.
+        useEffect(() => {
+          vivoRef.current = true;
+          (async () => {
+            let snap = null;
+            try { snap = FD.snapshotStore ? await FD.snapshotStore.ler() : null; } catch (e) { snap = null; }
+            if (snap && snap.escolas && snap.escolas.length) {
+              try {
+                if (vivoRef.current) { setTodas(FD.engine.avaliarTodas(snap.escolas)); setSnapEm(snap.capturadoEm); }
+                if (FD.snapshotStore.staleMs(snap.capturadoEm) > 6 * 60 * 60 * 1000) recarregar();
+              } catch (e) { recarregar(); }
+            } else { recarregar(); }
+          })();
+          return () => { vivoRef.current = false; };
+        }, [recarregar]);
         // Estado compartilhado por cliente (Supabase): carrega no cache e re-renderiza quando
         // chega/muda ao vivo. As leituras seguem SÍNCRONAS do cache (render inalterado).
         useEffect(() => {
@@ -1462,6 +1487,12 @@
         return (
           <div className="min-h-screen pb-12">
             <Header sessao={sessao} squad={squad} setSquad={setSquad} view={view} setView={(v) => { setNavDir(""); setView(v); }} onLogout={logout} busca={busca} setBusca={setBusca} resp={resp} setResp={(r) => { setResp(r); if (r) setView("demandas"); }} reps={repsDisp} />
+            {snapEm && FD.snapshotStore && FD.snapshotStore.staleMs(snapEm) > 60000 && (
+              <div className="max-w-6xl mx-auto px-4 pt-2 -mb-1 text-[11px] text-slate-500 flex items-center gap-2">
+                <span title="Lido do Supabase (cache) — não bateu nas APIs">📦 dados de {relativo(snapEm)}</span>
+                <button onClick={recarregar} className="text-blue-400 hover:underline font-medium">🔄 atualizar agora</button>
+              </div>
+            )}
             <main className="max-w-6xl mx-auto px-4 py-5">
             <div key={view + "·" + squad + (view === "detalhe" ? selId : "")} className={view === "detalhe" ? "fd-push-in" : navDir === "out" ? "fd-push-out" : "fd-fade"}>
               {view === "resumo" && <Resumo escolas={escolas} label={label} showSquad={showSquad} abrirCliente={abrirCliente} setView={setView} agenda={agenda} />}
