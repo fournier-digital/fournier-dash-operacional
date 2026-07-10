@@ -113,19 +113,22 @@
       window.__fdTimer = setTimeout(function () { fdErro("Tempo esgotado: o app não renderizou. Veja o console (F12)."); }, 12000);
     </script>
 
-    <script defer src="src/lib/format.js?v=60"></script>
-    <script defer src="src/lib/clientes.js?v=60"></script>
-    <script defer src="src/lib/configStore.js?v=60"></script>
-    <script defer src="src/lib/auth.js?v=60"></script>
-    <script defer src="src/lib/clienteStore.js?v=60"></script>
-    <script defer src="src/mocks/data.js?v=60"></script>
-    <script defer src="src/engine/criticidade.js?v=60"></script>
-    <script defer src="src/integrations/clickup.js?v=60"></script>
-    <script defer src="src/integrations/googleCalendar.js?v=60"></script>
-    <script defer src="src/integrations/nps.js?v=60"></script>
-    <script defer src="src/integrations/controle.js?v=60"></script>
-    <script defer src="src/integrations/ltv.js?v=60"></script>
-    <script defer src="src/integrations/registry.js?v=60"></script>
+    <!-- Supabase JS (UMD) — armazenagem compartilhada cross-device; antes dos módulos FD -->
+    <script defer src="https://unpkg.com/@supabase/supabase-js@2.110.2/dist/umd/supabase.js"></script>
+    <script defer src="src/lib/format.js?v=61"></script>
+    <script defer src="src/lib/clientes.js?v=61"></script>
+    <script defer src="src/lib/configStore.js?v=61"></script>
+    <script defer src="src/lib/auth.js?v=61"></script>
+    <script defer src="src/lib/supabase.js?v=61"></script>
+    <script defer src="src/lib/clienteStore.js?v=61"></script>
+    <script defer src="src/mocks/data.js?v=61"></script>
+    <script defer src="src/engine/criticidade.js?v=61"></script>
+    <script defer src="src/integrations/clickup.js?v=61"></script>
+    <script defer src="src/integrations/googleCalendar.js?v=61"></script>
+    <script defer src="src/integrations/nps.js?v=61"></script>
+    <script defer src="src/integrations/controle.js?v=61"></script>
+    <script defer src="src/integrations/ltv.js?v=61"></script>
+    <script defer src="src/integrations/registry.js?v=61"></script>
 
     <script type="text/app-jsx" id="app-src">
       const { useState, useEffect, useMemo } = React;
@@ -1349,6 +1352,13 @@
         // Render progressivo: pinta a carteira do ClickUp assim que chega
         // (1º setTodas via callback) e re-pinta com NPS/Agenda/Controle (2º setTodas).
         useEffect(() => { FD.integrations.carregar(setTodas).then(setTodas).catch((err) => { console.error(err); setTodas([]); }); }, []);
+        // Estado compartilhado por cliente (Supabase): carrega no cache e re-renderiza quando
+        // chega/muda ao vivo. As leituras seguem SÍNCRONAS do cache (render inalterado).
+        useEffect(() => {
+          const un = (FD.clienteStore.subscribe && FD.clienteStore.subscribe(() => setTick((t) => t + 1))) || null;
+          if (FD.clienteStore.init) FD.clienteStore.init();
+          return () => { if (un) un(); };
+        }, []);
         // sobe ao topo ao trocar de view/cliente. Ao ABRIR um cliente (navDir "in"),
         // o scroll é instantâneo p/ não competir com o slide de entrada (fd-push-in);
         // nas trocas de aba mantém o suave. (respeita reduced-motion via 'auto')
