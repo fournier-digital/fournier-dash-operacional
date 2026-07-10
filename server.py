@@ -165,6 +165,40 @@ def _config_status():
     return out
 
 
+def _save_config_rows(data):
+    """Grava a config (estrutura do FD.config) na tabela Supabase. (status, payload)."""
+    url, key = _sb_creds()
+    if not url or not key:
+        return 400, {"error": "Supabase não configurado no servidor"}
+    saved = []
+    for squad in ("azul", "laranja"):
+        c = (data.get(squad) or {})
+
+        def g(fonte, campo):
+            return (c.get(fonte) or {}).get(campo) or None
+        row = {
+            "squad": squad,
+            "clickup_token": g("clickup", "token"), "clickup_space_id": g("clickup", "spaceId"),
+            "gcal_api_key": g("googleCalendar", "apiKey"), "gcal_calendar_id": g("googleCalendar", "calendarId"),
+            "nps_link_interna": g("nps", "linkInterna"), "nps_link_externa": g("nps", "linkExterna"),
+            "controle_link": g("controle", "link"), "ltv_link": g("ltv", "link"),
+        }
+        if not any(row[k] for k in row if k != "squad"):
+            continue  # nada preenchido -> não sobrescreve com tudo null
+        try:
+            req = urlrequest.Request("%s/rest/v1/config" % url, data=json.dumps(row).encode("utf-8"),
+                                     headers={"apikey": key, "Authorization": "Bearer " + key,
+                                              "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates"},
+                                     method="POST")
+            urlrequest.urlopen(req, timeout=10).read()
+            saved.append(squad)
+        except Exception as e:
+            return 502, {"error": "falha ao salvar no Supabase", "detalhe": str(e)}
+    with _SB_CFG_LOCK:
+        _SB_CFG_CACHE.clear()
+    return 200, {"ok": True, "saved": saved}
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
@@ -232,6 +266,19 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._send_json(200, _config_status())
             return self._send_json(404, {"error": "rota /api desconhecida"})
         return super().do_GET()  # arquivos estáticos
+
+    def do_POST(self):
+        if self.path.startswith("/api/config"):
+            if not self._host_ok():
+                return self._send_json(403, {"error": "Host não permitido."})
+            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                data = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+            except Exception:
+                return self._send_json(400, {"error": "JSON inválido"})
+            st, pl = _save_config_rows(data)
+            return self._send_json(st, pl)
+        return self._send_json(404, {"error": "rota /api desconhecida"})
 
     # ---- Planilha genérica (Controle/Onboarding) -----------------------
     def handle_sheet(self):
