@@ -20,6 +20,31 @@
     return !!(s && s[squad] && s[squad][fonte]);
   };
 
+  // Sincroniza os VALORES não-secretos vindos do Supabase (calendarId, spaceId, links)
+  // no FD.config deste dispositivo. Assim o Supabase é a fonte da verdade da config e
+  // todos os aparelhos veem o mesmo depois de um "Salvar". Secrets nunca vêm p/ cá.
+  FD.integrations._sincronizarConfig = function (vals) {
+    if (!vals || !FD.configStore) return false;
+    const cfg = FD.configStore.load();
+    let mudou = false;
+    ["azul", "laranja"].forEach((sq) => {
+      const v = vals[sq];
+      if (!v || !cfg[sq]) return;
+      Object.keys(v).forEach((fonte) => {
+        const campos = v[fonte] || {};
+        Object.keys(campos).forEach((campo) => {
+          const novo = campos[campo];
+          if (novo && cfg[sq][fonte] && cfg[sq][fonte][campo] !== novo) {
+            cfg[sq][fonte][campo] = novo;
+            mudou = true;
+          }
+        });
+      });
+    });
+    if (mudou) FD.configStore.save(cfg);
+    return mudou;
+  };
+
   FD.integrations.lista = function () {
     return FONTES.map((key) => FD.integrations[key]).map((m, i) => ({ key: FONTES[i], ...m }));
   };
@@ -42,7 +67,13 @@
     // mesmo sem localStorage (dispositivo novo já vem configurado).
     try {
       const rc = await fetch("/api/config");
-      if (rc.ok) FD.integrations._serverCfg = await rc.json();
+      if (rc.ok) {
+        const resp = await rc.json();
+        FD.integrations._serverCfg = resp;
+        // Supabase manda: puxa os valores não-secretos p/ este dispositivo antes de
+        // buscar os dados (assim o calendarId/spaceId/links já vêm atualizados).
+        if (resp._valores) FD.integrations._sincronizarConfig(resp._valores);
+      }
     } catch (e) { /* sem status -> segue no localStorage */ }
     const algumConectado = SQUADS.some((sq) => FD.integrations.clickup.conectado(sq));
     const escolas = [];

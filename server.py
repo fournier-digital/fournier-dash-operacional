@@ -165,6 +165,22 @@ def _config_status():
     return out
 
 
+def _config_valores():
+    """Valores NÃO-secretos por squad (calendarId, spaceId, links) p/ sincronizar
+    entre dispositivos. Secrets (clickup_token, gcal_api_key) NUNCA são expostos."""
+    out = {}
+    for sq in ("azul", "laranja"):
+        c = _sb_config(sq)
+        out[sq] = {
+            "clickup": {"spaceId": c.get("clickup_space_id") or ""},
+            "googleCalendar": {"calendarId": c.get("gcal_calendar_id") or ""},
+            "nps": {"linkInterna": c.get("nps_link_interna") or "", "linkExterna": c.get("nps_link_externa") or ""},
+            "controle": {"link": c.get("controle_link") or ""},
+            "ltv": {"link": c.get("ltv_link") or ""},
+        }
+    return out
+
+
 def _save_config_rows(data):
     """Grava a config (estrutura do FD.config) na tabela Supabase. (status, payload)."""
     url, key = _sb_creds()
@@ -176,15 +192,20 @@ def _save_config_rows(data):
 
         def g(fonte, campo):
             return (c.get(fonte) or {}).get(campo) or None
-        row = {
-            "squad": squad,
+        novos = {
             "clickup_token": g("clickup", "token"), "clickup_space_id": g("clickup", "spaceId"),
             "gcal_api_key": g("googleCalendar", "apiKey"), "gcal_calendar_id": g("googleCalendar", "calendarId"),
             "nps_link_interna": g("nps", "linkInterna"), "nps_link_externa": g("nps", "linkExterna"),
             "controle_link": g("controle", "link"), "ltv_link": g("ltv", "link"),
         }
-        if not any(row[k] for k in row if k != "squad"):
-            continue  # nada preenchido -> não sobrescreve com tudo null
+        if not any(novos.values()):
+            continue  # squad sem nada preenchido -> não mexe
+        # MERGE não-destrutivo: preserva no banco os campos que este device NÃO enviou
+        # (evita que salvar de um aparelho sem todos os segredos zere o resto).
+        existente = _sb_config(squad) or {}
+        row = {"squad": squad}
+        for col, val in novos.items():
+            row[col] = val if val is not None else (existente.get(col) or None)
         try:
             req = urlrequest.Request("%s/rest/v1/config" % url, data=json.dumps(row).encode("utf-8"),
                                      headers={"apikey": key, "Authorization": "Bearer " + key,
@@ -263,7 +284,7 @@ class Handler(SimpleHTTPRequestHandler):
             if self.path.startswith("/api/sheet/"):
                 return self.handle_sheet()
             if self.path.startswith("/api/config"):
-                return self._send_json(200, _config_status())
+                return self._send_json(200, dict(_config_status(), _valores=_config_valores()))
             return self._send_json(404, {"error": "rota /api desconhecida"})
         return super().do_GET()  # arquivos estáticos
 

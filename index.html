@@ -115,22 +115,22 @@
 
     <!-- Supabase JS (UMD) — armazenagem compartilhada cross-device; antes dos módulos FD -->
     <script defer src="https://unpkg.com/@supabase/supabase-js@2.110.2/dist/umd/supabase.js"></script>
-    <script defer src="src/lib/format.js?v=69"></script>
-    <script defer src="src/lib/clientes.js?v=69"></script>
-    <script defer src="src/lib/configStore.js?v=69"></script>
-    <script defer src="src/lib/auth.js?v=69"></script>
-    <script defer src="src/lib/supabase.js?v=69"></script>
-    <script defer src="src/lib/clienteStore.js?v=69"></script>
-    <script defer src="src/lib/snapshotStore.js?v=69"></script>
-    <script defer src="src/lib/notasStore.js?v=69"></script>
-    <script defer src="src/mocks/data.js?v=69"></script>
-    <script defer src="src/engine/criticidade.js?v=69"></script>
-    <script defer src="src/integrations/clickup.js?v=69"></script>
-    <script defer src="src/integrations/googleCalendar.js?v=69"></script>
-    <script defer src="src/integrations/nps.js?v=69"></script>
-    <script defer src="src/integrations/controle.js?v=69"></script>
-    <script defer src="src/integrations/ltv.js?v=69"></script>
-    <script defer src="src/integrations/registry.js?v=69"></script>
+    <script defer src="src/lib/format.js?v=70"></script>
+    <script defer src="src/lib/clientes.js?v=70"></script>
+    <script defer src="src/lib/configStore.js?v=70"></script>
+    <script defer src="src/lib/auth.js?v=70"></script>
+    <script defer src="src/lib/supabase.js?v=70"></script>
+    <script defer src="src/lib/clienteStore.js?v=70"></script>
+    <script defer src="src/lib/snapshotStore.js?v=70"></script>
+    <script defer src="src/lib/notasStore.js?v=70"></script>
+    <script defer src="src/mocks/data.js?v=70"></script>
+    <script defer src="src/engine/criticidade.js?v=70"></script>
+    <script defer src="src/integrations/clickup.js?v=70"></script>
+    <script defer src="src/integrations/googleCalendar.js?v=70"></script>
+    <script defer src="src/integrations/nps.js?v=70"></script>
+    <script defer src="src/integrations/controle.js?v=70"></script>
+    <script defer src="src/integrations/ltv.js?v=70"></script>
+    <script defer src="src/integrations/registry.js?v=70"></script>
 
     <script type="text/app-jsx" id="app-src">
       const { useState, useEffect, useMemo } = React;
@@ -1606,17 +1606,26 @@
         const fontesDef = FD.integrations.lista();
         const [cfg, setCfg] = useState(() => FD.configStore.load());
         const [salvo, setSalvo] = useState(false);
-        const setCampo = (squad, fonte, key, value) => { setCfg((prev) => ({ ...prev, [squad]: { ...prev[squad], [fonte]: { ...prev[squad][fonte], [key]: value } } })); setSalvo(false); };
-        const salvar = () => {
-          FD.configStore.save(cfg); // localStorage (fallback/imediato)
-          // + grava no Supabase (cross-device) via proxy — os segredos vão browser->proxy->banco
-          fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg) }).catch(() => {});
-          onSaved && onSaved(); setSalvo(true);
+        const [erroSalvar, setErroSalvar] = useState("");
+        const setCampo = (squad, fonte, key, value) => { setCfg((prev) => ({ ...prev, [squad]: { ...prev[squad], [fonte]: { ...prev[squad][fonte], [key]: value } } })); setSalvo(false); setErroSalvar(""); };
+        const salvar = async () => {
+          FD.configStore.save(cfg); // localStorage (imediato/fallback)
+          setSalvo(false); setErroSalvar("");
+          try {
+            // grava no Supabase (cross-device); os segredos vão browser->proxy->banco
+            const r = await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cfg) });
+            if (!r.ok) { let j = {}; try { j = await r.json(); } catch (e) {} throw new Error(j.error || ("HTTP " + r.status)); }
+            // confirma e CONVERGE: re-puxa do Supabase e sincroniza os valores neste device
+            try { const rc = await fetch("/api/config"); if (rc.ok) { const resp = await rc.json(); FD.integrations._serverCfg = resp; if (resp._valores) FD.integrations._sincronizarConfig(resp._valores); setCfg(FD.configStore.load()); } } catch (e) {}
+            setSalvo(true); onSaved && onSaved();
+          } catch (e) {
+            setErroSalvar((e && e.message) || "falha desconhecida");
+          }
         };
         const squadCount = (squad) => fontesDef.filter((f) => FD.integrations[f.key].conectado(squad)).length;
         return (
           <div className="space-y-4">
-            <div className={`${CARD} p-4`}><h1 className={`text-lg ${H}`}>Integrações</h1><p className="text-sm text-slate-400 mt-1">Vincule as credenciais/links das ferramentas. Salvo <b>só neste navegador</b> (localStorage). No <b>ClickUp</b>, cada <b>squad = um Space</b>. Use <b>Listar meus spaces</b> para achar o ID e <b>Testar conexão</b> para ver os clientes e demandas reais.</p></div>
+            <div className={`${CARD} p-4`}><h1 className={`text-lg ${H}`}>Integrações</h1><p className="text-sm text-slate-400 mt-1">Vincule as credenciais/links das ferramentas. Ao clicar em <b>Salvar</b>, vai para o <b>Supabase</b> e passa a valer em <b>todos os dispositivos</b>. No <b>ClickUp</b>, cada <b>squad = um Space</b>. Use <b>Listar meus spaces</b> para achar o ID e <b>Testar conexão</b> para ver os clientes e demandas reais.</p></div>
             <div className={`grid grid-cols-1 ${squads.length > 1 ? "lg:grid-cols-2" : ""} gap-4`}>
               {squads.map((squad) => (
                 <div key={squad} className={`${CARD} overflow-hidden`}>
@@ -1625,7 +1634,7 @@
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-3 sticky bottom-0 bg-slate-950/70 backdrop-blur py-3"><button onClick={salvar} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl px-4 py-2">Salvar credenciais</button>{salvo && <span className="text-sm text-emerald-400 font-medium">✓ salvo</span>}</div>
+            <div className="flex items-center gap-3 flex-wrap sticky bottom-0 bg-slate-950/70 backdrop-blur py-3"><button onClick={salvar} className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl px-4 py-2">Salvar credenciais</button>{salvo && <span className="text-sm text-emerald-400 font-medium">✓ salvo no Supabase · vale em todos os dispositivos</span>}{erroSalvar && <span className="text-sm text-red-400 font-medium">✕ não salvou no Supabase ({erroSalvar}) — por ora vale só neste aparelho</span>}</div>
           </div>
         );
       }
