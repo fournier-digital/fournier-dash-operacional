@@ -140,25 +140,59 @@
     return melhorScore >= (limiar == null ? 0.6 : limiar) ? melhor : null;
   }
 
-  // Como melhorMatch, mas devolve TODOS os clientes cuja melhor variante cobre o
-  // texto acima do limiar (flexível: apelido / nome parcial / ordem trocada).
-  // É o usado pela AGENDA: um evento marca todos os clientes que fizerem sentido.
-  // Tira aninhados (nome contido em outro casado, ex.: "Vida" dentro de "Comecinho de Vida").
+  // Devolve TODOS os clientes que "fazem sentido" no texto. Usado pela AGENDA: um
+  // evento pode ser de VÁRIOS clientes (reunião conjunta de unidades).
+  //
+  // FLEXÍVEL por design — casa de 3 formas (a mais forte que valer):
+  //  (a) variante INTEIRA contida no título (match exato);
+  //  (b) TOKEN DISTINTIVO: palavra ÚNICA de 1 cliente entre os candidatos, com >=4
+  //      letras (ex.: "buzios"/"marica"), ignorando as GENÉRICAS que 2+ clientes
+  //      compartilham ("fisk", "colegio", "escola"). Assim "Reunião Fisk Búzios e
+  //      Maricá" casa as DUAS unidades mesmo sem repetir "Fisk";
+  //  (c) fallback: cobertura parcial das palavras da variante acima do limiar (antigo).
+  // Remove aninhados (ex.: "Vida" dentro de "Comecinho de Vida") -> fica o mais específico.
   function melhorMatchTodos(texto, candidatos, limiar) {
     const lim = limiar == null ? 0.6 : limiar;
     const tset = new Set(tokens(texto));
     if (!tset.size) return [];
-    const casados = [];
+
+    // Quantos CLIENTES têm cada token (1x por cliente). Token em 2+ clientes = genérico.
+    const freq = {};
     for (const c of candidatos) {
-      let best = 0, bestInter = null;
+      const vistos = new Set();
       for (const v of c.variantes) {
         const vtk = Array.isArray(v) ? v : tokens(v);
-        if (!vtk.length) continue;
-        const presentes = vtk.filter((t) => tset.has(t));
-        const score = presentes.length / vtk.length; // fração das palavras do nome no título
-        if (presentes.length > 0 && score > best) { best = score; bestInter = presentes; }
+        for (const t of vtk) if (!vistos.has(t)) { vistos.add(t); freq[t] = (freq[t] || 0) + 1; }
       }
-      if (best >= lim && bestInter) casados.push({ c, tk: new Set(bestInter) });
+    }
+    const distintivo = (t) => t.length >= 4 && freq[t] === 1;
+
+    const casados = [];
+    for (const c of candidatos) {
+      let tk = null; // tokens do título que justificam o match deste cliente
+      for (const v of c.variantes) { // (a) variante inteira no título
+        const vtk = Array.isArray(v) ? v : tokens(v);
+        if (vtk.length && vtk.every((t) => tset.has(t))) { tk = new Set(vtk); break; }
+      }
+      if (!tk) { // (b) token distintivo do cliente presente no título
+        const dist = new Set();
+        for (const v of c.variantes) {
+          const vtk = Array.isArray(v) ? v : tokens(v);
+          for (const t of vtk) if (distintivo(t) && tset.has(t)) dist.add(t);
+        }
+        if (dist.size) tk = dist;
+      }
+      if (!tk) { // (c) fallback: cobertura parcial acima do limiar
+        let best = 0, inter = null;
+        for (const v of c.variantes) {
+          const vtk = Array.isArray(v) ? v : tokens(v);
+          if (!vtk.length) continue;
+          const pres = vtk.filter((t) => tset.has(t));
+          if (pres.length > 0 && pres.length / vtk.length > best) { best = pres.length / vtk.length; inter = pres; }
+        }
+        if (best >= lim && inter) tk = new Set(inter);
+      }
+      if (tk && tk.size) casados.push({ c, tk });
     }
     return casados
       .filter((x, i) => !casados.some((y, j) => j !== i && y.tk.size > x.tk.size && [...x.tk].every((t) => y.tk.has(t))))
