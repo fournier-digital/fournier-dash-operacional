@@ -115,22 +115,22 @@
 
     <!-- Supabase JS (UMD) — armazenagem compartilhada cross-device; antes dos módulos FD -->
     <script defer src="https://unpkg.com/@supabase/supabase-js@2.110.2/dist/umd/supabase.js"></script>
-    <script defer src="src/lib/format.js?v=70"></script>
-    <script defer src="src/lib/clientes.js?v=70"></script>
-    <script defer src="src/lib/configStore.js?v=70"></script>
-    <script defer src="src/lib/auth.js?v=70"></script>
-    <script defer src="src/lib/supabase.js?v=70"></script>
-    <script defer src="src/lib/clienteStore.js?v=70"></script>
-    <script defer src="src/lib/snapshotStore.js?v=70"></script>
-    <script defer src="src/lib/notasStore.js?v=70"></script>
-    <script defer src="src/mocks/data.js?v=70"></script>
-    <script defer src="src/engine/criticidade.js?v=70"></script>
-    <script defer src="src/integrations/clickup.js?v=70"></script>
-    <script defer src="src/integrations/googleCalendar.js?v=70"></script>
-    <script defer src="src/integrations/nps.js?v=70"></script>
-    <script defer src="src/integrations/controle.js?v=70"></script>
-    <script defer src="src/integrations/ltv.js?v=70"></script>
-    <script defer src="src/integrations/registry.js?v=70"></script>
+    <script defer src="src/lib/format.js?v=71"></script>
+    <script defer src="src/lib/clientes.js?v=71"></script>
+    <script defer src="src/lib/configStore.js?v=71"></script>
+    <script defer src="src/lib/auth.js?v=71"></script>
+    <script defer src="src/lib/supabase.js?v=71"></script>
+    <script defer src="src/lib/clienteStore.js?v=71"></script>
+    <script defer src="src/lib/snapshotStore.js?v=71"></script>
+    <script defer src="src/lib/notasStore.js?v=71"></script>
+    <script defer src="src/mocks/data.js?v=71"></script>
+    <script defer src="src/engine/criticidade.js?v=71"></script>
+    <script defer src="src/integrations/clickup.js?v=71"></script>
+    <script defer src="src/integrations/googleCalendar.js?v=71"></script>
+    <script defer src="src/integrations/nps.js?v=71"></script>
+    <script defer src="src/integrations/controle.js?v=71"></script>
+    <script defer src="src/integrations/ltv.js?v=71"></script>
+    <script defer src="src/integrations/registry.js?v=71"></script>
 
     <script type="text/app-jsx" id="app-src">
       const { useState, useEffect, useMemo } = React;
@@ -625,7 +625,7 @@
       }
 
       /* ---------------- HEADER ---------------- */
-      function Header({ sessao, squad, setSquad, view, setView, onLogout, busca, setBusca, resp, setResp, reps }) {
+      function Header({ sessao, squad, setSquad, view, setView, onLogout, busca, setBusca, resp, setResp, reps, onRefresh, atualizando }) {
         const diretoria = sessao.papel === "diretoria";
         const tabs = [
           { key: "resumo", label: "Resumo" }, { key: "renovacoes", label: "Renovações" }, { key: "reunioes", label: "Reuniões" },
@@ -653,6 +653,7 @@
                   <div className="relative"><input value={busca || ""} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar cliente…" aria-label="Buscar cliente" className="text-[13px] bg-slate-800/80 border border-slate-700 rounded-xl pl-7 pr-6 min-h-[40px] w-32 sm:w-44 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40" /><span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500 text-[12px]" aria-hidden="true">🔍</span>{busca && <button onClick={() => setBusca("")} title="Limpar" aria-label="Limpar busca" className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs">✕</button>}</div>
                   <RepSelector reps={reps} resp={resp} setResp={setResp} />
                   <button onClick={() => setView("integracoes")} title="Integrações" aria-label="Integrações" className={`text-base px-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg transition ${view === "integracoes" ? "text-blue-300 bg-slate-800" : "text-slate-400 hover:text-slate-200"}`}><span aria-hidden="true">⚙</span></button>
+                  <button onClick={() => onRefresh && onRefresh()} disabled={atualizando} title="Buscar tudo de novo AGORA, ignorando cache (ClickUp, agenda, NPS, planilhas). Use quando adicionar/alterar algo nas ferramentas." className={`text-[12px] font-semibold px-2.5 min-h-[44px] inline-flex items-center gap-1 rounded-lg transition active:scale-95 ${atualizando ? "text-slate-500 cursor-wait" : "text-blue-300 hover:text-blue-200 hover:bg-slate-800"}`}><span className={atualizando ? "animate-spin inline-block" : "inline-block"}>🔄</span><span className="hidden sm:inline">{atualizando ? "Atualizando…" : "Atualizar"}</span></button>
                   <button onClick={onLogout} className="text-[12px] font-medium text-slate-400 hover:text-red-400 px-2 min-h-[44px] inline-flex items-center">Sair</button>
                 </div>
               </div>
@@ -1670,17 +1671,21 @@
             return FD.engine.avaliarTodas(escolas, tmap);
           }).catch(() => escolas);
         };
-        // Recarrega AO VIVO (fetch+normaliza), pinta e regrava o snapshot. Boot (se
-        // snapshot ausente/velho) e botão "atualizar".
-        const recarregar = React.useCallback(() => {
-          return FD.integrations.carregar((p) => { if (vivoRef.current) setTodas(p); })
+        const [atualizando, setAtualizando] = useState(false);
+        // Recarrega AO VIVO (fetch+normaliza), pinta e regrava o snapshot. `fresh` fura os
+        // caches (snapshot do Supabase + 45s do proxy do ClickUp) — é o botão "Atualizar"
+        // trazendo tudo do zero (ex.: cliente recém-criado no ClickUp aparece na hora).
+        const recarregar = React.useCallback((fresh) => {
+          if (vivoRef.current) setAtualizando(true);
+          return FD.integrations.carregar((p) => { if (vivoRef.current) setTodas(p); }, { fresh: !!fresh })
             .then((esc) => {
               if (vivoRef.current) { setTodas(esc); setSnapEm(FD.NOW.toISOString()); }
               if (FD.snapshotStore) FD.snapshotStore.gravar(esc);
               return comTendencia(esc);
             })
             .then((esc2) => { if (esc2 && vivoRef.current) setTodas(esc2); })
-            .catch((err) => { console.error(err); if (vivoRef.current) setTodas([]); });
+            .catch((err) => { console.error(err); if (vivoRef.current) setTodas([]); })
+            .finally(() => { if (vivoRef.current) setAtualizando(false); });
         }, []);
         // BOOT read-model: lê o snapshot do Supabase -> render INSTANTÂNEO (re-avalia a
         // criticidade contra FD.NOW pois ela é congelada no load) -> stale-while-revalidate
@@ -1803,11 +1808,11 @@
 
         return (
           <div className="min-h-screen pb-12">
-            <Header sessao={sessao} squad={squad} setSquad={setSquad} view={view} setView={(v) => { setNavDir(""); setView(v); }} onLogout={logout} busca={busca} setBusca={setBusca} resp={resp} setResp={(r) => { setResp(r); if (r) setView("demandas"); }} reps={repsDisp} />
+            <Header sessao={sessao} squad={squad} setSquad={setSquad} view={view} setView={(v) => { setNavDir(""); setView(v); }} onLogout={logout} busca={busca} setBusca={setBusca} resp={resp} setResp={(r) => { setResp(r); if (r) setView("demandas"); }} reps={repsDisp} onRefresh={() => recarregar(true)} atualizando={atualizando} />
             {snapEm && FD.snapshotStore && FD.snapshotStore.staleMs(snapEm) > 60000 && (
               <div className="max-w-6xl mx-auto px-4 pt-2 -mb-1 text-[11px] text-slate-500 flex items-center gap-2">
                 <span title="Lido do Supabase (cache) — não bateu nas APIs">📦 dados de {relativo(snapEm)}</span>
-                <button onClick={recarregar} className="text-blue-400 hover:underline font-medium">🔄 atualizar agora</button>
+                <button onClick={() => recarregar(true)} className="text-blue-400 hover:underline font-medium">🔄 atualizar agora</button>
               </div>
             )}
             <main className="max-w-6xl mx-auto px-4 py-5">

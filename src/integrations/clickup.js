@@ -227,11 +227,13 @@
       return chamarProxy("space-inspect", creds, { spaceId: creds.spaceId });
     },
 
-    async fetch(squad) {
+    async fetch(squad, opts) {
       if (!this.conectado(squad)) return null; // -> mock
       const { token, spaceId } = FD.config[squad].clickup;
       try {
-        const resp = await chamarProxy("space-tasks", { token, squad }, { spaceId });
+        const query = { spaceId };
+        if (opts && opts.fresh) query.nocache = "1"; // botão Atualizar fura o cache de 45s do proxy
+        const resp = await chamarProxy("space-tasks", { token, squad }, query);
         return { source: "clickup", escolas: construirEscolas(resp.tasks || [], squad, resp.folders || {}) };
       } catch (e) {
         console.warn("[clickup] fetch falhou, mantendo mock:", e.message);

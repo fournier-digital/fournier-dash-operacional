@@ -337,6 +337,8 @@ class Handler(SimpleHTTPRequestHandler):
 
         cfg = load_config().get(squad, {}) or {}
         qs = urlparse.parse_qs(parsed.query)
+        # bypass do cache de 45s: ?nocache=1 (ou ?fresh=1) força reler o ClickUp agora
+        nocache = bool(qs.get("nocache", [None])[0] or qs.get("fresh", [None])[0])
 
         # Token: 1) proxy.local.json (recomendado, fora do navegador)
         #        2) variável de ambiente CLICKUP_TOKEN
@@ -372,7 +374,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "dica": "use 'Listar meus spaces' e clique no Space do squad",
                 })
             try:
-                tasks, folders_meta = self._clickup_space_tasks(token, space_id)
+                tasks, folders_meta = self._clickup_space_tasks(token, space_id, nocache)
             except urlerror.HTTPError as e:
                 return self._send_json(e.code, {"error": "ClickUp respondeu HTTP %s" % e.code, "detalhe": e.read().decode("utf-8", "ignore")[:600]})
             except Exception as e:
@@ -639,12 +641,13 @@ class Handler(SimpleHTTPRequestHandler):
             page += 1
         return out
 
-    def _clickup_space_tasks(self, token, space_id):
+    def _clickup_space_tasks(self, token, space_id, nocache=False):
         """RÁPIDO: só as tarefas das listas relevantes (via list_ids).
         Retorna (tasks, folders_meta) com folders_meta = {folderId: date_created}
-        para estimar a 'chegada' do cliente pela criação da PASTA."""
+        para estimar a 'chegada' do cliente pela criação da PASTA.
+        nocache=True fura o cache de 45s (usado pelo botão Atualizar)."""
         ck = ("cu-space", str(space_id))
-        cached = _cache_get(ck)
+        cached = None if nocache else _cache_get(ck)
         if cached is not None:
             return cached
         # PERF (cold): team, pastas e listas SOLTAS resolvidos em PARALELO (antes eram 3

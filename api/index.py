@@ -261,6 +261,8 @@ class handler(BaseHTTPRequestHandler):
         # Token: header X-CU-Token (navegador) ou env CLICKUP_TOKEN ou config do Supabase.
         token = self.headers.get("X-CU-Token") or os.environ.get("CLICKUP_TOKEN") or sbc.get("clickup_token")
         space_id = (qs.get("spaceId", [None])[0]) or sbc.get("clickup_space_id")
+        # bypass do cache de 45s: ?nocache=1 (ou ?fresh=1) força reler o ClickUp agora
+        nocache = bool(qs.get("nocache", [None])[0] or qs.get("fresh", [None])[0])
         if not token:
             return self._send_json(401, {
                 "error": "sem token do ClickUp",
@@ -280,7 +282,7 @@ class handler(BaseHTTPRequestHandler):
             if not space_id:
                 return self._send_json(400, {"error": "sem spaceId", "dica": "use 'Listar meus spaces' e clique no Space do squad"})
             try:
-                tasks, folders_meta = self._clickup_space_tasks(token, space_id)
+                tasks, folders_meta = self._clickup_space_tasks(token, space_id, nocache)
             except urlerror.HTTPError as e:
                 return self._send_json(e.code, {"error": "ClickUp respondeu HTTP %s" % e.code, "detalhe": e.read().decode("utf-8", "ignore")[:600]})
             except Exception as e:
@@ -452,9 +454,9 @@ class handler(BaseHTTPRequestHandler):
             page += 1
         return out
 
-    def _clickup_space_tasks(self, token, space_id):
+    def _clickup_space_tasks(self, token, space_id, nocache=False):
         ck = ("cu-space", str(space_id))
-        cached = _cache_get(ck)
+        cached = None if nocache else _cache_get(ck)
         if cached is not None:
             return cached
         # PERF (cold): team, pastas e listas soltas resolvidos em PARALELO (antes eram 3

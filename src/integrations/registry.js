@@ -58,7 +58,7 @@
   // carga vira ~o da fonte mais lenta, não a SOMA de 8 grupos em série. Além
   // disso há RENDER PROGRESSIVO: assim que o ClickUp volta, a carteira já é
   // pintada via onParcial(); Agenda/NPS/Controle "entram" quando chegam.
-  FD.integrations.carregar = async function (onParcial) {
+  FD.integrations.carregar = async function (onParcial, opts) {
     // Se ALGUM squad está configurado, não usamos mais o mock em lugar nenhum:
     // squad conectado mostra os clientes REAIS; squad não-configurado fica
     // vazio (nunca escolas genéricas). O mock só aparece se NADA estiver
@@ -80,7 +80,7 @@
 
     // Dispara já (sem await encadeado) — cada fetch trata o próprio erro -> null.
     const pFetch = (mod, sq) => {
-      try { return Promise.resolve(mod && mod.fetch(sq)).catch(() => null); }
+      try { return Promise.resolve(mod && mod.fetch(sq, opts)).catch(() => null); }
       catch (e) { return Promise.resolve(null); }
     };
     const pClickup  = SQUADS.map((sq) => pFetch(FD.integrations.clickup, sq));
