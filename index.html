@@ -115,22 +115,22 @@
 
     <!-- Supabase JS (UMD) — armazenagem compartilhada cross-device; antes dos módulos FD -->
     <script defer src="https://unpkg.com/@supabase/supabase-js@2.110.2/dist/umd/supabase.js"></script>
-    <script defer src="src/lib/format.js?v=72"></script>
-    <script defer src="src/lib/clientes.js?v=72"></script>
-    <script defer src="src/lib/configStore.js?v=72"></script>
-    <script defer src="src/lib/auth.js?v=72"></script>
-    <script defer src="src/lib/supabase.js?v=72"></script>
-    <script defer src="src/lib/clienteStore.js?v=72"></script>
-    <script defer src="src/lib/snapshotStore.js?v=72"></script>
-    <script defer src="src/lib/notasStore.js?v=72"></script>
-    <script defer src="src/mocks/data.js?v=72"></script>
-    <script defer src="src/engine/criticidade.js?v=72"></script>
-    <script defer src="src/integrations/clickup.js?v=72"></script>
-    <script defer src="src/integrations/googleCalendar.js?v=72"></script>
-    <script defer src="src/integrations/nps.js?v=72"></script>
-    <script defer src="src/integrations/controle.js?v=72"></script>
-    <script defer src="src/integrations/ltv.js?v=72"></script>
-    <script defer src="src/integrations/registry.js?v=72"></script>
+    <script defer src="src/lib/format.js?v=73"></script>
+    <script defer src="src/lib/clientes.js?v=73"></script>
+    <script defer src="src/lib/configStore.js?v=73"></script>
+    <script defer src="src/lib/auth.js?v=73"></script>
+    <script defer src="src/lib/supabase.js?v=73"></script>
+    <script defer src="src/lib/clienteStore.js?v=73"></script>
+    <script defer src="src/lib/snapshotStore.js?v=73"></script>
+    <script defer src="src/lib/notasStore.js?v=73"></script>
+    <script defer src="src/mocks/data.js?v=73"></script>
+    <script defer src="src/engine/criticidade.js?v=73"></script>
+    <script defer src="src/integrations/clickup.js?v=73"></script>
+    <script defer src="src/integrations/googleCalendar.js?v=73"></script>
+    <script defer src="src/integrations/nps.js?v=73"></script>
+    <script defer src="src/integrations/controle.js?v=73"></script>
+    <script defer src="src/integrations/ltv.js?v=73"></script>
+    <script defer src="src/integrations/registry.js?v=73"></script>
 
     <script type="text/app-jsx" id="app-src">
       const { useState, useEffect, useMemo } = React;
@@ -1704,6 +1704,16 @@
             } else { recarregar(); }
           })();
           return () => { vivoRef.current = false; };
+        }, [recarregar]);
+        // Auto-refresh: a cada 10 min, SÓ com a aba visível (leve — não força bypass, usa o
+        // cache curto do proxy). Mantém o painel fresco sem martelar as APIs. O botão manual
+        // e o selo "atualizado há X" continuam valendo.
+        useEffect(() => {
+          const id = setInterval(() => {
+            if (typeof document !== "undefined" && document.hidden) return; // aba em 2º plano: pula
+            if (vivoRef.current) recarregar(false);
+          }, 10 * 60 * 1000);
+          return () => clearInterval(id);
         }, [recarregar]);
         // Estado compartilhado por cliente (Supabase): carrega no cache e re-renderiza quando
         // chega/muda ao vivo. As leituras seguem SÍNCRONAS do cache (render inalterado).
