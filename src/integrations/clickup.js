@@ -43,15 +43,38 @@
     return EXCLUIR_TAREFAS.some((p) => n.indexOf(p) >= 0);
   }
 
-  // Marcador de RENOVAÇÃO: task cujo PRAZO (due date) é o fim do contrato.
-  // Pode estar em qualquer lista da pasta; é lida só pela data e NÃO vira demanda.
-  // Reconhece "Fim/Encerramento/Vencimento do contrato", "Contrato até ..." e
-  // títulos que começam com "Renovação". "renovar criativos" NÃO casa (sem contrato).
-  function ehMarcadorRenovacao(t) {
+  // Tarefas que NÃO são renovação de CONTRATO mesmo mencionando "renovar/renovação"
+  // (renovar criativos, identidade, site...). Guarda de precisão.
+  const _NAO_CONTRATO = /(criativ|identidade|visual|logo|marca|site|layout|design|post|conteud|material|banner|feed|reels|midia|social|grafic)/;
+  // Palavras de AÇÃO -> a tarefa é um TO-DO real (fica na lista de demandas), não um
+  // marcador puro. Ex.: "Agendar reunião para renovação", "Ligar sobre renovação".
+  const _ACAO_RENOV = /(agendar|marcar|reuni|ligar|enviar|propost|conversa|contat|prepar|montar|elaborar|assinar|renegoci|cobran|follow|alinh)/;
+
+  // MENCIONA renovação de contrato (substantivo "renovação" em qualquer posição, ou
+  // "fim/vencimento do contrato", "contrato até ..."). NÃO casa o verbo "renovar X"
+  // quando X é peça de marketing (guarda acima). É o gatilho da DATA de renovação.
+  function mencionaRenovacao(t) {
     if (!t || !t.due_date) return false;
     const n = norm(t.name);
+    if (_NAO_CONTRATO.test(n)) return false;
     if (n.indexOf("contrato") >= 0 && /(fim|encerr|venciment|renova|termin|\bate\b)/.test(n)) return true;
-    return /^renova[cs][ao]/.test(n); // "Renovação", "Renovacao 2026"
+    return /renova[cs][ao]/.test(n); // "renovação"/"renovacao" em qualquer lugar do título
+  }
+  // MARCADOR puro (metadado: só a data importa) -> sai da lista de demandas. Uma tarefa
+  // de ação que menciona renovação NÃO é marcador (continua demanda, só empresta a data).
+  function ehMarcadorRenovacao(t) {
+    if (!mencionaRenovacao(t)) return false;
+    return !_ACAO_RENOV.test(norm(t.name));
+  }
+  // Data de renovação a partir das tarefas da pasta: 1) marcador puro (também define o
+  // termo em meses); 2) senão, a data MAIS DISTANTE entre as tarefas que mencionam
+  // renovação (ex.: "Agendar reunião para renovação") — empresta a data, sem estimar termo.
+  function dataRenovacao(tasks) {
+    const marc = (tasks || []).find(ehMarcadorRenovacao);
+    if (marc) return { ms: Number(marc.due_date), marcador: true };
+    let melhor = 0;
+    for (const t of tasks || []) if (mencionaRenovacao(t)) { const d = Number(t.due_date); if (d > melhor) melhor = d; }
+    return melhor ? { ms: melhor, marcador: false } : null;
   }
 
   async function chamarProxy(acao, { token, squad }, query) {
@@ -147,14 +170,16 @@
       const taskMs = criadas.length ? Math.min.apply(null, criadas) : null;
       const inicioMs = (!isNaN(folderMs) && folderMs) ? folderMs : taskMs;
       const inicioContrato = inicioMs ? new Date(inicioMs).toISOString() : null;
-      // Renovação: SÓ quando existe a task-marcador na pasta (prazo = fim do contrato).
-      // Sem marcador -> sem data (NÃO estimamos; a tela diz "sem data cadastrada").
+      // Renovação: 1) marcador puro de fim de contrato (prazo = fim; define o termo);
+      // 2) senão, a data mais distante entre tarefas que MENCIONAM renovação (ex.:
+      // "Agendar reunião para renovação") — empresta a data. Sem nada -> "sem data".
       let renovacaoEm = null, termoMeses = null;
-      const marcador = info.tasks.find(ehMarcadorRenovacao);
-      if (marcador) {
-        const fimMs = Number(marcador.due_date);
-        renovacaoEm = new Date(fimMs).toISOString();
-        if (inicioMs && fimMs > inicioMs) termoMeses = Math.max(1, Math.round((fimMs - inicioMs) / (30.44 * 864e5)));
+      const renov = dataRenovacao(info.tasks);
+      if (renov && renov.ms) {
+        renovacaoEm = new Date(renov.ms).toISOString();
+        if (renov.marcador && inicioMs && renov.ms > inicioMs) {
+          termoMeses = Math.max(1, Math.round((renov.ms - inicioMs) / (30.44 * 864e5)));
+        }
       }
 
       escolas.push({
@@ -278,4 +303,8 @@
       return [].concat(...listas);
     },
   };
+  // expostos p/ teste unitário (Node)
+  FD.integrations.clickup._mencionaRenovacao = mencionaRenovacao;
+  FD.integrations.clickup._ehMarcadorRenovacao = ehMarcadorRenovacao;
+  FD.integrations.clickup._dataRenovacao = dataRenovacao;
 })();
